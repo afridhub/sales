@@ -3,227 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIM Sales Management Pro - Live Dashboard</title>
+    <title>SalesFlow Pro - SIM Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .input-box { border: 1px solid #cbd5e1; padding: 8px; width: 100%; border-radius: 6px; transition: all 0.2s; }
-        .input-box:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-        .bg-header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
-        .readonly-bg { background-color: #f8fafc; color: #64748b; font-weight: 600; }
-        .card-stat { transition: transform 0.2s; }
-        .card-stat:hover { transform: translateY(-5px); }
-        .tab-btn { transition: all 0.3s; border-bottom: 3px solid transparent; }
-        .tab-btn.active { border-bottom: 3px solid #fff; font-weight: bold; }
-        /* Table styles */
-        #report-table thead th { position: sticky; top: 0; background: #1e293b; color: white; z-index: 10; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f3f4f6; }
+        .input-field { border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; width: 100%; font-size: 13px; outline: none; transition: border 0.2s; }
+        .input-field:focus { border-color: #2563eb; ring: 2px ring-blue-500; }
+        .readonly-field { background-color: #f9fafb; color: #6b7280; font-weight: 600; }
+        .tab-btn { padding: 12px 24px; font-weight: 600; color: #6b7280; border-bottom: 2px solid transparent; transition: all 0.3s; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background-color: #eff6ff; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body>
 
-    <div id="login-box" class="flex items-center justify-center h-screen bg-slate-100">
-        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md">
-            <div class="text-center mb-8">
-                <div class="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-lock text-white text-2xl"></i>
-                </div>
-                <h2 class="text-3xl font-extrabold text-slate-800">Admin Access</h2>
-                <p class="text-slate-500 mt-2">Enter your credentials to manage sales</p>
-            </div>
-            <input type="password" id="pass" class="w-full border-2 p-3 mb-6 rounded-xl text-center text-xl tracking-widest" placeholder="••••">
-            <button onclick="login()" class="w-full bg-blue-700 text-white py-3 rounded-xl font-bold text-lg hover:bg-blue-800 transition shadow-lg">Login to Dashboard</button>
+    <div id="login-box" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-80 text-center">
+            <h2 class="text-xl font-extrabold mb-6 text-slate-800">Admin Login</h2>
+            <input type="password" id="pass" class="w-full text-center text-2xl tracking-widest border-b-2 border-blue-500 mb-6 focus:outline-none" placeholder="****">
+            <button onclick="login()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">Unlock System</button>
         </div>
     </div>
 
-    <div id="dashboard" class="hidden min-h-screen">
-        <nav class="bg-header text-white p-4 sticky top-0 z-50 shadow-md">
-            <div class="max-w-7xl mx-auto flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-chart-line text-2xl text-blue-300"></i>
-                    <h1 class="text-2xl font-black tracking-tight uppercase">Sales<span class="text-blue-300">Track</span></h1>
-                </div>
-                <div class="flex space-x-2">
-                    <button id="btn-entry" onclick="switchTab('entry')" class="tab-btn active px-4 py-2 hover:bg-white/10 rounded-t-lg">Daily Entry</button>
-                    <button id="btn-reports" onclick="switchTab('reports')" class="tab-btn px-4 py-2 hover:bg-white/10 rounded-t-lg">View Reports</button>
-                </div>
+    <nav class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 flex justify-between items-center h-16">
+            <div class="flex items-center space-x-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg text-white"><i class="fas fa-sim-card"></i></div>
+                <span class="font-extrabold text-xl">SIM<span class="text-blue-600">Track</span></span>
             </div>
-        </nav>
-
-        <div id="entry-tab" class="p-6 max-w-7xl mx-auto">
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mb-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-600 uppercase">Transaction Date</label>
-                    <input type="date" id="date" class="input-box">
-                </div>
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-600 uppercase">RSO Name</label>
-                    <input type="text" id="rso-name" list="name-list" class="input-box" placeholder="Search or type..." oninput="checkHistoryBalance()">
-                    <datalist id="name-list"></datalist>
-                </div>
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-600 uppercase">Staff Role</label>
-                    <select id="role" class="input-box" onchange="toggleFields()">
-                        <option value="RSO">RSO (Full Access)</option>
-                        <option value="BP">BP (SIM Only)</option>
-                    </select>
-                </div>
-                <div class="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col justify-center">
-                    <label class="block text-xs font-black text-red-800 uppercase tracking-wider">Previous Balance</label>
-                    <span id="history-due" class="text-2xl font-black text-red-600">0.00</span>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="p-4 border-b text-slate-500 uppercase text-xs font-bold">Product Name</th>
-                            <th class="p-4 border-b text-slate-500 uppercase text-xs font-bold w-32">Rate/Price</th>
-                            <th class="p-4 border-b text-slate-500 uppercase text-xs font-bold w-32">Stock Taken</th>
-                            <th class="p-4 border-b text-slate-500 uppercase text-xs font-bold w-32">Qty Sold</th>
-                            <th class="p-4 border-b text-slate-500 uppercase text-xs font-bold w-32">Back Stock</th>
-                            <th class="p-4 border-b text-blue-600 uppercase text-xs font-black text-right">Total Taka</th>
-                        </tr>
-                    </thead>
-                    <tbody id="product-rows" class="divide-y divide-slate-100">
-                        <tr data-id="ev"><td class="p-4 font-bold">EV Recharge</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="2.75" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box readonly-bg text-sm" readonly></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" value="0" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                        <tr data-id="c29" class="card-row"><td class="p-4 font-bold">29 Voice Card</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="28.20" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                        <tr data-id="c39" class="card-row"><td class="p-4 font-bold">39 Voice Card</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="37.93" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                        <tr data-id="c49" class="card-row"><td class="p-4 font-bold">49 Data Card</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="47.65" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                        <tr data-id="swap"><td class="p-4 font-bold">Swap SIM</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="332" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                        <tr data-id="v1"><td class="p-4 font-bold">SIM V1</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="200" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                        <tr data-id="v2"><td class="p-4 font-bold">SIM V2</td><td class="p-4"><input type="number" class="rate input-box text-sm" value="300" oninput="calc()"></td><td class="p-4"><input type="number" class="took input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="sold input-box text-sm" oninput="calc()"></td><td class="p-4"><input type="number" class="back input-box readonly-bg text-sm" readonly></td><td class="p-4 subtotal text-right font-black text-blue-600">0.00</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="bg-slate-900 rounded-2xl p-8 text-white shadow-xl grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div class="space-y-4">
-                    <div><label class="block text-xs uppercase opacity-60 font-bold mb-1">Fuel Allowance</label><input type="number" id="fuel" value="100" class="input-box text-black font-bold" oninput="calc()"></div>
-                    <div><label class="block text-xs uppercase opacity-60 font-bold mb-1">Today's Cash Paid</label><input type="number" id="paid" class="input-box text-black font-bold" oninput="calc()" placeholder="0.00"></div>
-                </div>
-                <div class="space-y-4">
-                    <div><label class="block text-xs uppercase opacity-60 font-bold mb-1">Debt Repayment (Prev. Day)</label><input type="number" id="prev" class="input-box text-black font-bold" oninput="calc()" placeholder="0.00"></div>
-                    <div class="bg-white/10 p-4 rounded-xl">
-                        <label class="block text-xs uppercase opacity-80 font-bold">Total Collection Today</label>
-                        <p id="full-paid-val" class="text-3xl font-black text-green-400">0.00</p>
-                    </div>
-                </div>
-                <div class="md:col-span-2 flex flex-col justify-center items-end border-l border-white/10 pl-8">
-                    <p class="text-sm opacity-60">Today's Net Sales: <span id="total-val">0.00</span></p>
-                    <h2 class="text-4xl font-black mt-2">New Balance: <span id="grand-due-val" class="text-red-400">0.00</span></h2>
-                    <p class="text-xs mt-2 text-slate-400 italic">* Includes all past unpaid dues + today's remaining</p>
-                    <button onclick="submitData()" id="submit-btn" class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-xl transition-all shadow-lg active:scale-95">
-                        <i class="fas fa-save mr-2"></i> POST TRANSACTION
-                    </button>
-                </div>
+            <div class="flex">
+                <button onclick="switchTab('entry')" id="t-entry" class="tab-btn active">Daily Entry</button>
+                <button onclick="switchTab('reports')" id="t-reports" class="tab-btn">View Reports</button>
             </div>
         </div>
+    </nav>
 
-        <div id="reports-tab" class="hidden p-6 max-w-7xl mx-auto space-y-6">
+    <main class="max-w-6xl mx-auto p-4 md:p-6">
+        
+        <div id="entry-tab" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="card-stat bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="bg-blue-100 p-3 rounded-xl"><i class="fas fa-hand-holding-dollar text-blue-600"></i></div>
-                        <span class="text-xs font-bold text-slate-400 uppercase">Total Sales</span>
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 border border-slate-200">
+                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Date</label><input type="date" id="date" class="input-field mt-1"></div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Name (Live Suggest)</label>
+                        <input type="text" id="rso-name" list="name-list" class="input-field mt-1" placeholder="Type name..." oninput="checkHistoryBalance()">
+                        <datalist id="name-list"></datalist>
                     </div>
-                    <p id="sum-sales" class="text-2xl font-black">0.00</p>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Role</label>
+                        <select id="role" class="input-field mt-1" onchange="toggleFields()">
+                            <option value="RSO">RSO</option>
+                            <option value="BP">BP (SIM Only)</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="card-stat bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="bg-green-100 p-3 rounded-xl"><i class="fas fa-money-bill-trend-up text-green-600"></i></div>
-                        <span class="text-xs font-bold text-slate-400 uppercase">Cash Collected</span>
-                    </div>
-                    <p id="sum-cash" class="text-2xl font-black">0.00</p>
-                </div>
-                <div class="card-stat bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="bg-red-100 p-3 rounded-xl"><i class="fas fa-file-invoice text-red-600"></i></div>
-                        <span class="text-xs font-bold text-slate-400 uppercase">Pending Due</span>
-                    </div>
-                    <p id="sum-due" class="text-2xl font-black">0.00</p>
-                </div>
-                <div class="card-stat bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="bg-purple-100 p-3 rounded-xl"><i class="fas fa-users text-purple-600"></i></div>
-                        <span class="text-xs font-bold text-slate-400 uppercase">Total Entries</span>
-                    </div>
-                    <p id="sum-entries" class="text-2xl font-black">0</p>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr class="text-[10px] font-bold text-slate-500 uppercase">
+                                <th class="p-3">Product Item</th>
+                                <th class="p-3 w-20">Rate</th>
+                                <th class="p-3 w-24">Took</th>
+                                <th class="p-3 w-24">Sold</th>
+                                <th class="p-3 w-20 text-center">Back</th>
+                                <th class="p-3 text-right">Total Taka</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-rows" class="divide-y divide-slate-100">
+                            <tr data-id="ev"><td class="p-3 font-semibold">EV Recharge</td><td><input type="number" class="rate input-field" value="2.75" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field readonly-field" readonly></td><td class="text-center text-slate-400 text-xs">-</td><td class="p-3 text-right font-bold text-blue-600 subtotal">0.00</td></tr>
+                            <tr data-id="c29" class="card-row"><td class="p-3 font-semibold text-slate-700">29 Voice Card</td><td><input type="number" class="rate input-field" value="28.20" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field" oninput="calc()"></td><td class="p-3 text-center back font-medium text-slate-500">0</td><td class="p-3 text-right font-bold text-slate-800 subtotal">0.00</td></tr>
+                            <tr data-id="c39" class="card-row"><td class="p-3 font-semibold text-slate-700">39 Voice Card</td><td><input type="number" class="rate input-field" value="37.93" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field" oninput="calc()"></td><td class="p-3 text-center back font-medium text-slate-500">0</td><td class="p-3 text-right font-bold text-slate-800 subtotal">0.00</td></tr>
+                            <tr data-id="c49" class="card-row"><td class="p-3 font-semibold text-slate-700">49 Data Card</td><td><input type="number" class="rate input-field" value="47.65" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field" oninput="calc()"></td><td class="p-3 text-center back font-medium text-slate-500">0</td><td class="p-3 text-right font-bold text-slate-800 subtotal">0.00</td></tr>
+                            <tr data-id="swap"><td class="p-3 font-semibold text-slate-700">Swap SIM</td><td><input type="number" class="rate input-field" value="332" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field" oninput="calc()"></td><td class="p-3 text-center back font-medium text-slate-500">0</td><td class="p-3 text-right font-bold text-slate-800 subtotal">0.00</td></tr>
+                            <tr data-id="v1"><td class="p-3 font-semibold text-slate-700">SIM Piece V1</td><td><input type="number" class="rate input-field" value="200" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field" oninput="calc()"></td><td class="p-3 text-center back font-medium text-slate-500">0</td><td class="p-3 text-right font-bold text-slate-800 subtotal">0.00</td></tr>
+                            <tr data-id="v2"><td class="p-3 font-semibold text-slate-700">SIM Piece V2</td><td><input type="number" class="rate input-field" value="300" oninput="calc()"></td><td><input type="number" class="took input-field" oninput="calc()"></td><td><input type="number" class="sold input-field" oninput="calc()"></td><td class="p-3 text-center back font-medium text-slate-500">0</td><td class="p-3 text-right font-bold text-slate-800 subtotal">0.00</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-slate-600 mb-4 uppercase text-sm tracking-widest">Performance Chart</h3>
-                    <div class="h-64"><canvas id="salesChart"></canvas></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-slate-600 mb-4 uppercase text-sm tracking-widest">Filters</h3>
+            <div class="space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                    <h3 class="font-extrabold text-slate-800 text-lg mb-4 border-b pb-2">Final Summary</h3>
+                    
                     <div class="space-y-4">
-                        <div><label class="text-xs font-bold text-slate-400">Date Range</label><input type="date" id="f-date" class="input-box mt-1" onchange="loadTable()"></div>
-                        <div><label class="text-xs font-bold text-slate-400">Search Staff</label><input type="text" id="f-name" class="input-box mt-1" oninput="loadTable()" placeholder="Type name..."></div>
-                        <div class="pt-4 flex flex-col space-y-2">
-                            <button onclick="loadTable(true)" class="bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition"><i class="fas fa-sync mr-2"></i> Refresh Data</button>
-                            <button onclick="exportExcel()" class="bg-slate-800 text-white p-3 rounded-xl font-bold hover:bg-slate-900 transition"><i class="fas fa-file-excel mr-2"></i> Export Excel</button>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">Previous Unpaid Due</span>
+                            <span id="history-due" class="font-bold text-red-600">0.00</span>
                         </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">Today's Net Sales</span>
+                            <span id="total-val" class="font-bold">0.00</span>
+                        </div>
+                        
+                        <hr class="border-slate-100">
+
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">RSO Paid (Today's Sale)</label>
+                            <input type="number" id="paid" class="input-field bg-blue-50 border-blue-100 text-lg font-bold" placeholder="0.00" oninput="calc()">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Prev. Day Paying (Repayment)</label>
+                            <input type="number" id="prev" class="input-field bg-green-50 border-green-100 text-lg font-bold" placeholder="0.00" oninput="calc()">
+                        </div>
+
+                        <div class="bg-slate-900 text-white p-4 rounded-xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs opacity-70 uppercase font-bold">Full Paid</span>
+                                <span id="full-paid-val" class="text-xl font-bold text-green-400">0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-white/10 pt-2">
+                                <span class="text-xs opacity-70 uppercase font-bold">New Balance Due</span>
+                                <span id="grand-due-val" class="text-2xl font-black text-red-400">0.00</span>
+                            </div>
+                        </div>
+
+                        <button onclick="submitData()" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-all">
+                            <i class="fas fa-save mr-2"></i> Save Transaction
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
-                    <span class="font-bold text-slate-600">TRANSACTION HISTORY</span>
-                    <span class="text-xs text-slate-400">Scroll right if on mobile →</span>
-                </div>
-                <div class="overflow-x-auto max-h-[500px]">
-                    <table id="report-table" class="w-full text-[11px] border-collapse"></table>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-[11px] text-blue-600 leading-relaxed">
+                    <i class="fas fa-info-circle mr-1"></i> Fuel cost (100 Tk) is automatically deducted from Today's Net Sales calculation.
                 </div>
             </div>
         </div>
-    </div>
+
+        <div id="reports-tab" class="hidden space-y-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-[200px]"><label class="text-[10px] font-bold text-slate-400 uppercase">Search by Name</label><input type="text" id="f-name" class="input-field mt-1" placeholder="Type here..." oninput="loadTable()"></div>
+                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Date</label><input type="date" id="f-date" class="input-field mt-1" onchange="loadTable()"></div>
+                <button onclick="loadTable(true)" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold text-sm"><i class="fas fa-sync mr-2"></i>Refresh</button>
+                <button onclick="exportExcel()" class="bg-slate-800 text-white px-5 py-2.5 rounded-lg font-bold text-sm"><i class="fas fa-file-excel mr-2"></i>Export</button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table id="report-table" class="w-full text-[11px] text-left"></table>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4mBUzq80X8eQBesmufUjg1jXu7rfKObd4qSyiuJT5DSz_FCVo3xYtPzpE0u9BAcKd/exec"; // PASTE YOUR LINK HERE
+        const SCRIPT_URL = "PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE";
         let allData = [];
-        let myChart = null;
 
         function login() {
             if(document.getElementById('pass').value === "1234") {
-                document.getElementById('login-box').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('login-box').style.display = 'none';
                 document.getElementById('date').valueAsDate = new Date();
                 loadTable(true);
-            } else { alert("Access Denied."); }
+            } else { alert("Incorrect PIN"); }
         }
 
         function switchTab(t) {
             document.getElementById('entry-tab').classList.toggle('hidden', t !== 'entry');
             document.getElementById('reports-tab').classList.toggle('hidden', t !== 'reports');
-            document.getElementById('btn-entry').classList.toggle('active', t === 'entry');
-            document.getElementById('btn-reports').classList.toggle('active', t === 'reports');
-            if(t === 'reports') loadTable();
-        }
-
-        // Logic Functions
-        function checkHistoryBalance() {
-            const nameInput = document.getElementById('rso-name').value.trim().toLowerCase();
-            let totalDueAccumulated = 0;
-            allData.slice(1).forEach(row => {
-                if(row[1] && row[1].toString().toLowerCase() === nameInput) {
-                    totalDueAccumulated += parseFloat(row[27]) || 0;
-                }
-            });
-            document.getElementById('history-due').innerText = totalDueAccumulated.toFixed(2);
-            calc();
-        }
-
-        function toggleFields() {
-            let role = document.getElementById('role').value;
-            document.querySelectorAll('.card-row').forEach(r => r.style.display = (role === 'BP' ? 'none' : 'table-row'));
-            calc();
+            document.getElementById('t-entry').className = (t === 'entry' ? 'tab-btn active' : 'tab-btn');
+            document.getElementById('t-reports').className = (t === 'reports' ? 'tab-btn active' : 'tab-btn');
         }
 
         function calc() {
@@ -233,7 +175,7 @@
                 const rate = parseFloat(tr.querySelector('.rate').value) || 0;
                 const took = parseFloat(tr.querySelector('.took').value) || 0;
                 const soldInput = tr.querySelector('.sold');
-                const backInput = tr.querySelector('.back');
+                const backDisplay = tr.querySelector('.back');
                 const subDisplay = tr.querySelector('.subtotal');
 
                 if (tr.style.display !== 'none') {
@@ -243,8 +185,9 @@
                         subDisplay.innerText = soldVal.toFixed(2);
                         totalSales += soldVal;
                     } else {
-                        let sold = parseFloat(soldInput.value) || 0;
-                        backInput.value = took - sold;
+                        let sold = parseFloat(tr.querySelector('.sold').value) || 0;
+                        let back = took - sold;
+                        if(backDisplay) backDisplay.innerText = back;
                         let sub = rate * sold;
                         subDisplay.innerText = sub.toFixed(2);
                         totalSales += sub;
@@ -252,130 +195,93 @@
                 }
             });
 
-            let fuel = parseFloat(document.getElementById('fuel').value) || 0;
-            let paid = parseFloat(document.getElementById('paid').value) || 0;
-            let prev = parseFloat(document.getElementById('prev').value) || 0;
-            let histDue = parseFloat(document.getElementById('history-due').innerText) || 0;
+            const paid = parseFloat(document.getElementById('paid').value) || 0;
+            const prev = parseFloat(document.getElementById('prev').value) || 0;
+            const histDue = parseFloat(document.getElementById('history-due').innerText) || 0;
+            const fullPaid = paid + prev;
+            const netToday = totalSales - 100; // Auto fuel subtraction
 
-            let fullPaid = paid + prev;
-            let netToday = totalSales - fuel;
-            let balanceChangeToday = netToday - fullPaid;
-            
             document.getElementById('full-paid-val').innerText = fullPaid.toFixed(2);
             document.getElementById('total-val').innerText = netToday.toFixed(2);
-            document.getElementById('grand-due-val').innerText = (histDue + balanceChangeToday).toFixed(2);
+            document.getElementById('grand-due-val').innerText = (histDue + netToday - fullPaid).toFixed(2);
         }
 
-        async function loadTable(force = false) {
-            if(force) {
-                const res = await fetch(SCRIPT_URL);
-                allData = await res.json();
-                // Update Name List
-                const list = document.getElementById('name-list');
-                const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
-                list.innerHTML = names.map(n => `<option value="${n}">`).join('');
-            }
-
-            let filtered = [];
-            let fDate = document.getElementById('f-date').value;
-            let fName = document.getElementById('f-name').value.toLowerCase();
-
-            let html = `<tr class="bg-slate-800 text-white text-xs">` + allData[0].map(h => `<th class="p-3 border-r border-slate-700 whitespace-nowrap">${h}</th>`).join('') + `</tr>`;
-            
-            let sSales = 0, sCash = 0, sDue = 0;
-
+        function checkHistoryBalance() {
+            const nameInput = document.getElementById('rso-name').value.trim().toLowerCase();
+            let totalDue = 0;
             allData.slice(1).forEach(row => {
-                const matchDate = !fDate || row[0].includes(fDate);
-                const matchName = !fName || row[1].toLowerCase().includes(fName);
-                
-                if(matchDate && matchName) {
-                    filtered.push(row);
-                    const dueVal = parseFloat(row[27]) || 0;
-                    const statusClass = dueVal > 0 ? "text-red-600 font-bold" : "text-green-600 font-bold";
-                    
-                    html += `<tr class="hover:bg-blue-50 transition border-b border-slate-100">`;
-                    row.forEach((cell, idx) => {
-                        let val = cell;
-                        if(idx === 27) val = `<span class="${statusClass}">${cell}</span>`;
-                        html += `<td class="p-2 border-r border-slate-100 whitespace-nowrap">${val}</td>`;
-                    });
-                    html += `</tr>`;
-
-                    sSales += parseFloat(row[25]) || 0;
-                    sCash += (parseFloat(row[26]) || 0) + (parseFloat(row[28]) || 0);
-                    sDue += dueVal;
-                }
+                // Assuming column index 27 is the "Due" column
+                if(row[1] && row[1].toLowerCase() === nameInput) totalDue += parseFloat(row[27]) || 0;
             });
-
-            document.getElementById('report-table').innerHTML = html;
-            document.getElementById('sum-sales').innerText = sSales.toFixed(2);
-            document.getElementById('sum-cash').innerText = sCash.toFixed(2);
-            document.getElementById('sum-due').innerText = sDue.toFixed(2);
-            document.getElementById('sum-entries').innerText = filtered.length;
-
-            updateChart(filtered);
-        }
-
-        function updateChart(data) {
-            const ctx = document.getElementById('salesChart').getContext('2d');
-            if(myChart) myChart.destroy();
-
-            // Last 7 days chart logic
-            const labels = data.slice(-7).map(r => r[0].split('T')[0]);
-            const sales = data.slice(-7).map(r => parseFloat(r[25]) || 0);
-            const collected = data.slice(-7).map(r => (parseFloat(r[26])||0) + (parseFloat(r[28])||0));
-
-            myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Sales', data: sales, backgroundColor: '#3b82f6' },
-                        { label: 'Collection', data: collected, backgroundColor: '#10b981' }
-                    ]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
+            document.getElementById('history-due').innerText = totalDue.toFixed(2);
+            calc();
         }
 
         async function submitData() {
-            const btn = document.getElementById('submit-btn');
             const name = document.getElementById('rso-name').value;
-            if(!name) { alert("Please enter RSO name!"); return; }
-
-            btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> SYNCING...`;
+            if(!name) return alert("Please enter Name");
             
-            const getV = (id, type) => document.querySelector(`[data-id="${id}"] .${type}`).value || 0;
-            let totalSales = parseFloat(document.getElementById('total-val').innerText);
-            let fullPaid = parseFloat(document.getElementById('full-paid-val').innerText);
-
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            const getV = (id, type) => document.querySelector(`[data-id="${id}"] .${type}`).value || (document.querySelector(`[data-id="${id}"] .${type}`).innerText) || 0;
+            
             const data = {
-                date: document.getElementById('date').value, name: name, role: document.getElementById('role').value,
-                ev_t: getV('ev','took'), ev_s: getV('ev','sold'), ev_b: getV('ev','back'),
+                date: document.getElementById('date').value,
+                name: name,
+                role: document.getElementById('role').value,
+                ev_t: getV('ev','took'), ev_s: getV('ev','sold'),
                 c29_t: getV('c29','took'), c29_s: getV('c29','sold'), c29_b: getV('c29','back'),
                 c39_t: getV('c39','took'), c39_s: getV('c39','sold'), c39_b: getV('c39','back'),
                 c49_t: getV('c49','took'), c49_s: getV('c49','sold'), c49_b: getV('c49','back'),
                 sw_t: getV('swap','took'), sw_s: getV('swap','sold'), sw_b: getV('swap','back'),
                 v1_t: getV('v1','took'), v1_s: getV('v1','sold'), v1_b: getV('v1','back'),
                 v2_t: getV('v2','took'), v2_s: getV('v2','sold'), v2_b: getV('v2','back'),
-                fuel: document.getElementById('fuel').value, total: totalSales,
-                paid: document.getElementById('paid').value, due: (totalSales - fullPaid).toFixed(2),
+                fuel: 100,
+                total: document.getElementById('total-val').innerText,
+                paid: document.getElementById('paid').value,
+                due: (parseFloat(document.getElementById('total-val').innerText) - parseFloat(document.getElementById('full-paid-val').innerText)).toFixed(2),
                 prev: document.getElementById('prev').value
             };
 
             try {
                 await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
-                alert("Transaction Recorded!");
                 location.reload();
-            } catch (e) { alert("Network Error!"); btn.disabled = false; btn.innerText = "POST TRANSACTION"; }
+            } catch (e) { alert("Error saving"); btn.disabled = false; btn.innerText = "Save Transaction"; }
+        }
+
+        async function loadTable(force = false) {
+            if(force) {
+                const res = await fetch(SCRIPT_URL);
+                allData = await res.json();
+                const list = document.getElementById('name-list');
+                const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
+                list.innerHTML = names.map(n => `<option value="${n}">`).join('');
+            }
+            
+            let fDate = document.getElementById('f-date').value;
+            let fName = document.getElementById('f-name').value.toLowerCase();
+            let html = `<thead class="bg-slate-50 text-slate-500 uppercase"><tr>` + allData[0].map(h => `<th class="p-3 border-b">${h}</th>`).join('') + `</tr></thead><tbody>`;
+            
+            allData.slice(1).forEach(row => {
+                if((!fDate || row[0].includes(fDate)) && (!fName || row[1].toLowerCase().includes(fName))) {
+                    const due = parseFloat(row[27]) || 0;
+                    const status = due <= 0 ? '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">PAID</span>' : '<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-bold">DUE</span>';
+                    html += `<tr class="border-b hover:bg-slate-50 transition">` + row.map((c, i) => `<td class="p-3">${i === 27 ? status + ' ' + c : c}</td>`).join('') + `</tr>`;
+                }
+            });
+            document.getElementById('report-table').innerHTML = html + `</tbody>`;
+        }
+
+        function toggleFields() {
+            const role = document.getElementById('role').value;
+            document.querySelectorAll('.card-row').forEach(r => r.style.display = (role === 'BP' ? 'none' : 'table-row'));
+            calc();
         }
 
         function exportExcel() {
-            let table = document.getElementById("report-table");
-            let wb = XLSX.utils.table_to_book(table, {sheet: "DailyRecords"});
-            XLSX.writeFile(wb, "Sales_Export.xlsx");
+            XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById("report-table")), "Sales_Records.xlsx");
         }
     </script>
 </body>
 </html>
-
