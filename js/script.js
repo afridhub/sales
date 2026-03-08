@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIAnnofP0O2l8NFNQSIYXFomGI48OnJmHYYuaFBJartLHfkUCeHhYfbJDNQdZ0pEby/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWzMei93nrzZBlsUDjEQmDS6xiQyzVHSTEuXbsYR3HTm94EI5SCzN8ayPZps9VpnPV/exec"; // updated to the latest endpoint
 let allData = [];
 let isLoading = false;
 let productStats = {};
@@ -353,8 +353,9 @@ function calc() {
 }
 
 // Fetch data from Google Sheets
-async function refreshData() {
-    console.log('refreshData called, isLoading:', isLoading);
+// when called with force=true the cache is ignored and a fresh fetch is made
+async function refreshData(force = false) {
+    console.log('refreshData called, isLoading:', isLoading, 'force:', force);
     if(isLoading) return;
     
     const btn = document.getElementById('sync-btn');
@@ -395,9 +396,10 @@ async function refreshData() {
         const cachedData = localStorage.getItem('sfp-data');
         const cachedTimestamp = localStorage.getItem('sfp-timestamp');
         
-        // Only fetch new data if cache is older than 10 minutes or doesn't exist
+        // Only fetch new data if cache is older than 10 minutes, doesn't exist, or caller forced a refresh
         const now = new Date().getTime();
-        if (!cachedData || !cachedTimestamp || (now - parseInt(cachedTimestamp)) > 600000) {
+        if (force || !cachedData || !cachedTimestamp || (now - parseInt(cachedTimestamp)) > 600000) {
+            if (force) console.log('force flag set, ignoring cache');
             console.log('Fetching new data from API...');
             const res = await fetchWithTimeout(SCRIPT_URL, {}, 5000);
             console.log('API response received:', res.status);

@@ -23,7 +23,7 @@
                         <input type="text" id="f-name" class="input-box" placeholder="Type here..." oninput="renderTable()">
                     </div>
                     <div class="flex gap-2">
-                        <button id="sync-btn" onclick="refreshData()" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center h-[42px] shadow hover:shadow-md">
+                        <button id="sync-btn" onclick="refreshData(true)" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center h-[42px] shadow hover:shadow-md">
                             <i id="sync-icon" class="fas fa-sync-alt mr-2"></i> Sync
                         </button>
                         <button onclick="exportExcel()" class="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center h-[42px] shadow hover:shadow-md">
