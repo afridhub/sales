@@ -1,12 +1,26 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVjSZMNDyyHa-gOyuIcS_-CwoXS8JNzW3bKENCe7g0So0Py6HmbkuPfpi6i8TpTfFm/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIAnnofP0O2l8NFNQSIYXFomGI48OnJmHYYuaFBJartLHfkUCeHhYfbJDNQdZ0pEby/exec";
 let allData = [];
 let isLoading = false;
 let productStats = {};
 let isOnline = navigator.onLine;
 
+// Helper function for fetch with timeout
+async function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeout);
+        return response;
+    } catch (error) {
+        clearTimeout(timeout);
+        throw error;
+    }
+}
+
 async function loadComponent(path, containerId) {
     try {
-        const res = await fetch(path);
+        const res = await fetchWithTimeout(path, {}, 3000);
         if (res.ok) {
             document.getElementById(containerId).innerHTML = await res.text();
         } else {
@@ -66,7 +80,35 @@ function insertFallback(containerId) {
             }
         }, 0);
     } else if (containerId === 'header-container') {
-        el.innerHTML = `<div id="toast" class="toast hidden"></div>`; // minimal; login modal may not work
+        el.innerHTML = `<!-- Toast Notification -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- Login Modal -->
+<div id="login-box" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 px-4 bg-opacity-90 backdrop-blur-sm">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm fade-in">
+        <div class="mb-6 text-center">
+            <div class="mx-auto bg-blue-600 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                <i class="fas fa-user text-white text-xl"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-slate-800 uppercase tracking-tight">Login</h2>
+            <p class="text-slate-500 text-sm mt-2">Sign in to your account</p>
+        </div>
+        <form onsubmit="return handleLogin(event)">
+            <div class="mb-4">
+                <label class="text-xs font-bold text-slate-600 uppercase block mb-2">Username</label>
+                <input type="text" id="username" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="Enter username" required>
+            </div>
+            <div class="mb-6">
+                <label class="text-xs font-bold text-slate-600 uppercase block mb-2">Password</label>
+                <input type="password" id="password" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-md hover:shadow-lg">
+                Sign In
+            </button>
+        </form>
+        <p class="text-slate-400 text-xs mt-4 text-center">Demo: user / pass</p>
+    </div>
+</div>`;
     } else if (containerId === 'footer-container') {
         el.innerHTML = `<footer class="bg-white border-t border-slate-200 text-center py-4"><p class="text-sm text-slate-500">&copy; Banglalink Fida Hassan Admin</p></footer>`;
     }
@@ -74,15 +116,27 @@ function insertFallback(containerId) {
 
 // Initialize the app & load components
 document.addEventListener('DOMContentLoaded', async function() {
-    await loadComponent('components/header.html', 'header-container');
-    await loadComponent('components/navbar.html', 'navbar-container');
-    await loadComponent('components/footer.html', 'footer-container');
-
-// Initialize the app & load components
-document.addEventListener('DOMContentLoaded', async function() {
-    await loadComponent('components/header.html', 'header-container');
-    await loadComponent('components/navbar.html', 'navbar-container');
-    await loadComponent('components/footer.html', 'footer-container');
+    // Ensure containers exist before filling them
+    const headerCont = document.getElementById('header-container');
+    const navbarCont = document.getElementById('navbar-container');
+    
+    // Load components with fast timeout and fallback
+    await Promise.all([
+        loadComponent('components/header.html', 'header-container').catch(() => insertFallback('header-container')),
+        loadComponent('components/navbar.html', 'navbar-container').catch(() => insertFallback('navbar-container')),
+        loadComponent('components/footer.html', 'footer-container').catch(() => insertFallback('footer-container'))
+    ]);
+    
+    // Verify components were loaded, if not, inject fallback immediately
+    if (!document.querySelector('nav')) {
+        insertFallback('navbar-container');
+    }
+    if (!document.getElementById('login-box')) {
+        insertFallback('header-container');
+    }
+    if (!document.querySelector('footer')) {
+        insertFallback('footer-container');
+    }
 
     // Set today's date
     const dateInput = document.getElementById('date');
@@ -104,8 +158,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (skeletonLoader) skeletonLoader.classList.remove('hidden');
         if (reportContent) reportContent.classList.add('hidden');
         
+        // Safety timeout to prevent infinite skeleton loading (10 seconds)
+        const skeletonTimeout = setTimeout(() => {
+            if (skeletonLoader) skeletonLoader.classList.add('hidden');
+            if (reportContent) reportContent.classList.remove('hidden');
+            // Also hide analytics skeleton if it exists
+            const analyticsSkeleton = document.getElementById('analytics-skeleton');
+            if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
+            const analyticsContent = document.getElementById('analytics-content');
+            if (analyticsContent) analyticsContent.classList.remove('hidden');
+        }, 10000);
+        
         // Auto load data
         await refreshData();
+        
+        // Clear timeout if data loaded successfully
+        clearTimeout(skeletonTimeout);
     }
 
     // Add keyboard shortcuts
@@ -286,6 +354,7 @@ function calc() {
 
 // Fetch data from Google Sheets
 async function refreshData() {
+    console.log('refreshData called, isLoading:', isLoading);
     if(isLoading) return;
     
     const btn = document.getElementById('sync-btn');
@@ -295,7 +364,7 @@ async function refreshData() {
     isLoading = true;
     if (btn) {
         btn.disabled = true;
-        icon.classList.add('fa-spin');
+        if (icon) icon.classList.add('fa-spin');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...';
     }
     
@@ -304,8 +373,24 @@ async function refreshData() {
     const analyticsSkeleton = document.getElementById('analytics-skeleton');
     if (skeletonLoader) skeletonLoader.classList.remove('hidden');
     if (analyticsSkeleton) analyticsSkeleton.classList.remove('hidden');
+    
+    // Safety timeout to hide skeleton even if render hangs
+    let skeletonHideTimeout;
+    const setSafetyRemoval = () => {
+        skeletonHideTimeout = setTimeout(() => {
+            console.log('Safety timeout triggered - forcing skeleton hide');
+            if (skeletonLoader) skeletonLoader.classList.add('hidden');
+            if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
+            const reportContent = document.getElementById('report-content');
+            const analyticsContent = document.getElementById('analytics-content');
+            if (reportContent) reportContent.classList.remove('hidden');
+            if (analyticsContent) analyticsContent.classList.remove('hidden');
+        }, 8000);
+    };
+    setSafetyRemoval();
 
     try {
+        console.log('Checking cache...');
         // Save cached data timestamp
         const cachedData = localStorage.getItem('sfp-data');
         const cachedTimestamp = localStorage.getItem('sfp-timestamp');
@@ -313,46 +398,80 @@ async function refreshData() {
         // Only fetch new data if cache is older than 10 minutes or doesn't exist
         const now = new Date().getTime();
         if (!cachedData || !cachedTimestamp || (now - parseInt(cachedTimestamp)) > 600000) {
-            const res = await fetch(SCRIPT_URL);
-            if(!res.ok) throw new Error('Network response was not ok');
+            console.log('Fetching new data from API...');
+            const res = await fetchWithTimeout(SCRIPT_URL, {}, 5000);
+            console.log('API response received:', res.status);
+            if(!res.ok) throw new Error('Network response was not ok: ' + res.status);
             
+            console.log('Parsing JSON response...');
             allData = await res.json();
+            console.log('Data parsed, rows:', allData.length);
+            
             localStorage.setItem('sfp-data', JSON.stringify(allData));
             localStorage.setItem('sfp-timestamp', now.toString());
             showNotification("Data synced successfully", "success");
         } else {
+            console.log('Using cached data');
             allData = JSON.parse(cachedData);
             showNotification("Using cached data", "warning");
         }
         
+        console.log('Processing names...');
         const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
+        console.log('Unique names:', names.length);
+        
         const nameList = document.getElementById('name-list');
         if (nameList) {
             nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
         }
+        
+        console.log('Calling renderTable...');
         renderTable();
+        
+        console.log('Calling updateAnalytics...');
         updateAnalytics();
+        
+        console.log('Data load complete');
     } catch (e) {
         console.error("Sync Error:", e);
+        showNotification("API Error: " + e.message, "error");
         
         // Try to use cached data as fallback
         const cachedData = localStorage.getItem('sfp-data');
         if (cachedData) {
+            console.log('Using cached data as fallback');
             allData = JSON.parse(cachedData);
             showNotification("Using cached data (offline)", "warning");
             renderTable();
             updateAnalytics();
         } else {
-            showNotification("Failed to sync data", "error");
+            console.log('No cached data, using empty');
+            showNotification("Failed to sync data - using empty data", "error");
+            // Initialize empty data structure to prevent page freeze
+            allData = [["Date", "Name", "Role", "Net Sales", "Paid", "Due"]];
+            renderTable();
+            updateAnalytics();
         }
     } finally {
+        console.log('refreshData finally block');
+        // Clear safety timeout and manually hide skeletons
+        if (skeletonHideTimeout) clearTimeout(skeletonHideTimeout);
+        
+        if (skeletonLoader) skeletonLoader.classList.add('hidden');
+        if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
+        const reportContent = document.getElementById('report-content');
+        const analyticsContent = document.getElementById('analytics-content');
+        if (reportContent) reportContent.classList.remove('hidden');
+        if (analyticsContent) analyticsContent.classList.remove('hidden');
+        
         // Reset loading state
         isLoading = false;
         if (btn) {
             btn.disabled = false;
-            icon.classList.remove('fa-spin');
+            if (icon) icon.classList.remove('fa-spin');
             btn.innerHTML = '<i id="sync-icon" class="fas fa-sync-alt mr-2"></i> Sync';
         }
+        console.log('refreshData finished');
     }
 }
 
@@ -443,14 +562,14 @@ async function submitData() {
     };
 
     try {
-        // Submit via fetch
-        const response = await fetch(SCRIPT_URL, {
+        // Submit via fetch with timeout
+        const response = await fetchWithTimeout(SCRIPT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data)
-        });
+        }, 5000);
         
         if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -489,43 +608,70 @@ function renderTable() {
     const tbody = document.getElementById('report-body');
     if (!tbody) return; // Page doesn't have this element
     
-    const searchFilter = document.getElementById('f-name').value.toLowerCase().trim();
+    const searchInput = document.getElementById('f-name');
+    const searchFilter = (searchInput ? searchInput.value : '').toLowerCase().trim();
     
-    // Filter data
-    const filteredData = allData.slice(1).filter(row => {
-        if (!row[1]) return false;
-        return row[1].toLowerCase().includes(searchFilter);
-    }).reverse(); // Show newest first
+    console.log('renderTable called with data length:', allData.length, 'search:', searchFilter);
+    
+    // Ensure allData is an array
+    if (!Array.isArray(allData)) {
+        console.error('allData is not an array:', allData);
+        allData = [];
+    }
+    
+    // Filter data safely
+    let filteredData = [];
+    try {
+        filteredData = allData.slice(1).filter(row => {
+            if (!row || !row[1]) return false;
+            return row[1].toLowerCase().includes(searchFilter);
+        }).reverse(); // Show newest first
+    } catch (e) {
+        console.error('Error filtering data:', e);
+        filteredData = [];
+    }
+    
+    console.log('Filtered data rows:', filteredData.length);
     
     // Update cards
-    document.getElementById('total-records').textContent = filteredData.length;
-    document.getElementById('active-staff').textContent = [...new Set(filteredData.map(row => row[1]))].length;
+    const totalRecordsEl = document.getElementById('total-records');
+    if (totalRecordsEl) totalRecordsEl.textContent = filteredData.length;
+    
+    const activeStaffEl = document.getElementById('active-staff');
+    if (activeStaffEl) {
+        try {
+            activeStaffEl.textContent = [...new Set(filteredData.map(row => row[1]))].length;
+        } catch (e) {
+            activeStaffEl.textContent = '0';
+        }
+    }
     
     let totalSales = 0;
     let outstandingDues = 0;
     
     // Build table rows
     let html = '';
-    filteredData.forEach(row => {
-        const netSales = parseFloat(row[26]) || 0;
-        const paid = parseFloat(row[23]) || 0;
-        const due = parseFloat(row[27]) || 0;
-        
-        totalSales += netSales;
-        outstandingDues += due;
-        
-        let statusClass = "badge-success";
-        let statusText = "Paid";
-        
-        if (due > 0 && due <= 500) {
-            statusClass = "badge-warning";
-            statusText = "Partial";
-        } else if (due > 500) {
-            statusClass = "badge-danger";
-            statusText = "Due";
-        }
-        
-        html += `
+    try {
+        filteredData.forEach(row => {
+            const netSales = parseFloat(row[26]) || 0;
+            const paid = parseFloat(row[23]) || 0;
+            const due = parseFloat(row[27]) || 0;
+            
+            totalSales += netSales;
+            outstandingDues += due;
+            
+            let statusClass = "badge-success";
+            let statusText = "Paid";
+            
+            if (due > 0 && due <= 500) {
+                statusClass = "badge-warning";
+                statusText = "Partial";
+            } else if (due > 500) {
+                statusClass = "badge-danger";
+                statusText = "Due";
+            }
+            
+            html += `
             <tr class="hover:bg-slate-50">
                 <td class="p-3">${row[0] || '-'}</td>
                 <td class="p-3 font-medium">${row[1] || '-'}</td>
@@ -536,74 +682,109 @@ function renderTable() {
                 <td class="p-3"><span class="status-badge ${statusClass}">${statusText}</span></td>
             </tr>
         `;
-    });
+        });
+    } catch (e) {
+        console.error('Error building rows:', e);
+    }
     
     tbody.innerHTML = html || '<tr><td colspan="7" class="p-3 text-center text-slate-400">No records found</td></tr>';
     
     // Update summary
-    document.getElementById('total-sales').textContent = totalSales.toFixed(2) + ' Tk';
-    document.getElementById('outstanding-dues').textContent = outstandingDues.toFixed(2) + ' Tk';
+    const totalSalesEl = document.getElementById('total-sales');
+    if (totalSalesEl) totalSalesEl.textContent = totalSales.toFixed(2) + ' Tk';
+    
+    const outstandingDuesEl = document.getElementById('outstanding-dues');
+    if (outstandingDuesEl) outstandingDuesEl.textContent = outstandingDues.toFixed(2) + ' Tk';
     
     // Hide skeleton loader and show content
     const skeletonLoader = document.getElementById('skeleton-loader');
     const reportContent = document.getElementById('report-content');
-    if (skeletonLoader) skeletonLoader.classList.add('hidden');
-    if (reportContent) reportContent.classList.remove('hidden');
+    if (skeletonLoader) {
+        skeletonLoader.classList.add('hidden');
+        console.log('Hidden skeleton loader');
+    }
+    if (reportContent) {
+        reportContent.classList.remove('hidden');
+        console.log('Showed report content');
+    }
 }
 
 // Update analytics panel
 function updateAnalytics() {
+    console.log('updateAnalytics called');
     const dailyTotal = document.getElementById('daily-total');
-    if (!dailyTotal) return; // Page doesn't have analytics
+    if (!dailyTotal) {
+        console.log('No analytics elements on this page, skipping');
+        return; // Page doesn't have analytics
+    }
     
-    if (allData.length <= 1) return;
+    if (!Array.isArray(allData) || allData.length <= 1) {
+        console.log('No data to update analytics');
+        return;
+    }
 
-    const rows = allData.slice(1);
-    const nameFilter = document.getElementById('analytics-name').value.toLowerCase().trim();
-    const dateFilter = document.getElementById('analytics-date').value; // yyyy-mm-dd
-    const monthFilter = document.getElementById('analytics-month').value; // yyyy-mm
+    try {
+        const rows = allData.slice(1);
+        
+        // Safely get filter values
+        const analyticsNameEl = document.getElementById('analytics-name');
+        const analyticsDateEl = document.getElementById('analytics-date');
+        const analyticsMonthEl = document.getElementById('analytics-month');
+        
+        const nameFilter = analyticsNameEl ? analyticsNameEl.value.toLowerCase().trim() : '';
+        const dateFilter = analyticsDateEl ? analyticsDateEl.value : ''; // yyyy-mm-dd
+        const monthFilter = analyticsMonthEl ? analyticsMonthEl.value : ''; // yyyy-mm
 
-    // apply name filtering
-    let filtered = rows.filter(r => {
-        if (nameFilter) {
-            return r[1] && r[1].toLowerCase().includes(nameFilter);
+        // apply name filtering
+        let filtered = rows.filter(r => {
+            if (nameFilter) {
+                return r && r[1] && r[1].toLowerCase().includes(nameFilter);
+            }
+            return true;
+        });
+
+        // helper to strip time from date string (keep yyyy-mm-dd)
+        const stripTime = d => (d||"").split('T')[0];
+
+        // compute daily total
+        let dailyTotalValue = 0;
+        const targetDay = dateFilter || new Date().toISOString().split('T')[0];
+        filtered.forEach(r => {
+            if (stripTime(r[0]) === targetDay) {
+                dailyTotalValue += parseFloat(r[26]) || 0;
+            }
+        });
+        document.getElementById('daily-total').textContent = dailyTotalValue.toFixed(2) + ' Tk';
+
+        // compute monthly total
+        let monthlyTotal = 0;
+        const targetMonth = monthFilter || new Date().toISOString().slice(0, 7);
+        filtered.forEach(r => {
+            if (stripTime(r[0]).startsWith(targetMonth)) monthlyTotal += parseFloat(r[26]) || 0;
+        });
+        const monthlyTotalEl = document.getElementById('monthly-total');
+        if (monthlyTotalEl) monthlyTotalEl.textContent = monthlyTotal.toFixed(2) + ' Tk';
+
+        // day-to-day breakdown for the selected month
+        const breakdown = {};
+        filtered.forEach(r => {
+            const day = stripTime(r[0]);
+            if (day.startsWith(targetMonth)) {
+                breakdown[day] = (breakdown[day] || 0) + (parseFloat(r[26]) || 0);
+            }
+        });
+        const breakdownEls = Object.entries(breakdown)
+            .sort()
+            .map(([d, tot]) => `<div class="flex justify-between"><span>${d}</span><span class="font-bold">${tot.toFixed(2)} Tk</span></div>`);
+        const dailyBreakdownEl = document.getElementById('daily-breakdown');
+        if (dailyBreakdownEl) {
+            dailyBreakdownEl.innerHTML = breakdownEls.join('') || '<div class="text-slate-400">No data</div>';
         }
-        return true;
-    });
-
-    // helper to strip time from date string (keep yyyy-mm-dd)
-    const stripTime = d => (d||"").split('T')[0];
-
-    // compute daily total
-    let dailyTotal = 0;
-    const targetDay = dateFilter || new Date().toISOString().split('T')[0];
-    filtered.forEach(r => {
-        if (stripTime(r[0]) === targetDay) {
-            dailyTotal += parseFloat(r[26]) || 0;
-        }
-    });
-    document.getElementById('daily-total').textContent = dailyTotal.toFixed(2) + ' Tk';
-
-    // compute monthly total
-    let monthlyTotal = 0;
-    const targetMonth = monthFilter || new Date().toISOString().slice(0, 7);
-    filtered.forEach(r => {
-        if (stripTime(r[0]).startsWith(targetMonth)) monthlyTotal += parseFloat(r[26]) || 0;
-    });
-    document.getElementById('monthly-total').textContent = monthlyTotal.toFixed(2) + ' Tk';
-
-    // day-to-day breakdown for the selected month
-    const breakdown = {};
-    filtered.forEach(r => {
-        const day = stripTime(r[0]);
-        if (day.startsWith(targetMonth)) {
-            breakdown[day] = (breakdown[day] || 0) + (parseFloat(r[26]) || 0);
-        }
-    });
-    const breakdownEls = Object.entries(breakdown)
-        .sort()
-        .map(([d, tot]) => `<div class="flex justify-between"><span>${d}</span><span class="font-bold">${tot.toFixed(2)} Tk</span></div>`);
-    document.getElementById('daily-breakdown').innerHTML = breakdownEls.join('') || '<div class="text-slate-400">No data</div>';
+        
+        console.log('updateAnalytics complete');
+    } catch (e) {
+        console.error('Error in updateAnalytics:', e);
+    }
     
     // Hide skeleton loader and show content
     const analyticsSkeleton = document.getElementById('analytics-skeleton');
