@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIAnnofP0O2l8NFNQSIYXFomGI48OnJmHYYuaFBJartLHfkUCeHhYfbJDNQdZ0pEby/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWzMei93nrzZBlsUDjEQmDS6xiQyzVHSTEuXbsYR3HTm94EI5SCzN8ayPZps9VpnPV/exec";
 let allData = [];
 let isLoading = false;
 let productStats = {};
