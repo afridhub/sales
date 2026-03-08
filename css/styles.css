@@ -32,7 +32,10 @@ body {
     font-weight: 700; 
     color: #94a3b8; 
     border-bottom: 2px solid transparent; 
-    transition: 0.2s; 
+    transition: 0.2s;
+    display: inline-block;
+    text-decoration: none;
+    cursor: pointer;
 }
 .tab-btn.active { 
     color: #2563eb; 
@@ -46,6 +49,48 @@ body {
 .hide-scrollbar { 
     -ms-overflow-style: none; 
     scrollbar-width: none; 
+}
+
+/* Skeleton Loading Styles */
+@keyframes skeleton-loading {
+    0% { background-color: #e2e8f0; }
+    50% { background-color: #cbd5e1; }
+    100% { background-color: #e2e8f0; }
+}
+
+.skeleton {
+    background-color: #e2e8f0;
+    border-radius: 8px;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-card {
+    padding: 16px;
+    border-radius: 12px;
+    background-color: #f1f5f9;
+}
+
+.skeleton-text {
+    height: 24px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.skeleton-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.skeleton-cell {
+    flex: 1;
+    height: 20px;
+    border-radius: 8px;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
 }
 
 /* Custom animations */

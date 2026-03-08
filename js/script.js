@@ -30,18 +30,41 @@ function insertFallback(containerId) {
 <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 flex justify-between items-center h-16">
         <div class="flex items-center space-x-2">
-            <div class="bg-blue-600 p-1.5 rounded-lg text-white">
-                <i class="fas fa-sim-card text-sm"></i>
-            </div>
+            <img src="assets/images/logo/logo.png" alt="Logo" class="h-10 w-auto">
             <span class="font-extrabold text-base uppercase tracking-tight">Banglalink Fida Hassan Admin</span>
         </div>
-        <div class="flex gap-6">
-            <button onclick="switchTab('entry')" id="t-entry" class="tab-btn active">Entry</button>
-            <button onclick="switchTab('reports')" id="t-reports" class="tab-btn">Reports</button>
-            <button onclick="switchTab('analytics')" id="t-analytics" class="tab-btn">Analytics</button>
+        <div class="flex gap-6 items-center">
+            <a href="entry.html" class="tab-btn" id="nav-entry">Entry</a>
+            <a href="reports.html" class="tab-btn" id="nav-reports">Reports</a>
+            <a href="analytics.html" class="tab-btn" id="nav-analytics">Analytics</a>
+            <div class="border-l border-slate-200 pl-6" id="auth-section">
+                <button onclick="showLoginModal()" id="login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <div id="user-info" class="hidden flex items-center gap-4">
+                    <span class="text-sm font-medium text-slate-700">Welcome, <span id="logged-user">User</span></span>
+                    <button onclick="logout()" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center gap-2">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </nav>`;
+        // Set active nav based on current page
+        setTimeout(() => {
+            const currentPage = window.location.pathname.split('/').pop() || 'entry.html';
+            document.querySelectorAll('[id^="nav-"]').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (currentPage.includes('entry') || currentPage === '' || currentPage === 'index.html') {
+                if (document.getElementById('nav-entry')) document.getElementById('nav-entry').classList.add('active');
+            } else if (currentPage.includes('reports')) {
+                if (document.getElementById('nav-reports')) document.getElementById('nav-reports').classList.add('active');
+            } else if (currentPage.includes('analytics')) {
+                if (document.getElementById('nav-analytics')) document.getElementById('nav-analytics').classList.add('active');
+            }
+        }, 0);
     } else if (containerId === 'header-container') {
         el.innerHTML = `<div id="toast" class="toast hidden"></div>`; // minimal; login modal may not work
     } else if (containerId === 'footer-container') {
@@ -55,26 +78,48 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadComponent('components/navbar.html', 'navbar-container');
     await loadComponent('components/footer.html', 'footer-container');
 
+// Initialize the app & load components
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadComponent('components/header.html', 'header-container');
+    await loadComponent('components/navbar.html', 'navbar-container');
+    await loadComponent('components/footer.html', 'footer-container');
+
     // Set today's date
-    document.getElementById('date').valueAsDate = new Date();
+    const dateInput = document.getElementById('date');
+    if (dateInput) {
+        dateInput.valueAsDate = new Date();
+    }
+
+    // Initialize auth UI
+    updateAuthUI();
+
+    // Auto-load data for reports and analytics pages if logged in
+    const currentPage = window.location.pathname.split('/').pop() || 'entry.html';
+    const isLoggedIn = localStorage.getItem('sfp-loggedin') === 'true';
+    
+    if (isLoggedIn && (currentPage.includes('reports') || currentPage.includes('analytics'))) {
+        // Show skeleton loader
+        const skeletonLoader = document.getElementById('skeleton-loader');
+        const reportContent = document.getElementById('report-content');
+        if (skeletonLoader) skeletonLoader.classList.remove('hidden');
+        if (reportContent) reportContent.classList.add('hidden');
+        
+        // Auto load data
+        await refreshData();
+    }
 
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         // Ctrl+S to save
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
-            submitData();
+            if (typeof submitData === 'function') submitData();
         }
         // Ctrl+R to refresh
         if (e.ctrlKey && e.key === 'r') {
             e.preventDefault();
-            refreshData();
+            if (typeof refreshData === 'function') refreshData();
         }
-    });
-
-    // Support Enter key in password field (header loaded)
-    document.getElementById('pass').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') login();
     });
 });
 
@@ -92,35 +137,66 @@ function showNotification(message, type = "success") {
     }, 3000);
 }
 
-// Enhanced login with Enter key support
-function login() {
-    const pass = document.getElementById('pass');
-    if(pass.value === "1234") {
+// Enhanced login with username and password
+function handleLogin(event) {
+    event.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    // Simple validation (user / pass)
+    if(username === "user" && password === "pass") {
         document.getElementById('login-box').style.display = 'none';
         localStorage.setItem('sfp-loggedin', 'true');
+        localStorage.setItem('sfp-username', username);
+        updateAuthUI();
         refreshData();
-        showNotification("Welcome back!", "success");
+        showNotification("Welcome " + username + "!", "success");
+        // Clear form
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        return false;
     } else {
-        showNotification("Incorrect PIN", "error");
-        pass.value = "";
-        pass.focus();
+        showNotification("Invalid username or password", "error");
+        document.getElementById('password').value = "";
+        document.getElementById('password').focus();
+        return false;
     }
 }
 
-// Switch between tabs
-function switchTab(tab) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`t-${tab}`).classList.add('active');
-    
-    // Update content
-    document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
-    document.getElementById(`${tab}-tab`).classList.remove('hidden');
-    
-    // Update data when switching to reports or analytics
-    if (tab === 'reports' || tab === 'analytics') {
-        renderTable();
-        updateAnalytics();
+// Show login modal
+function showLoginModal() {
+    document.getElementById('login-box').style.display = 'flex';
+    document.getElementById('username').focus();
+}
+
+// Logout function
+function logout() {
+    localStorage.setItem('sfp-loggedin', 'false');
+    localStorage.setItem('sfp-username', '');
+    updateAuthUI();
+    document.getElementById('login-box').style.display = 'flex';
+    showNotification("Logged out successfully", "success");
+}
+
+// Update authentication UI based on login status
+function updateAuthUI() {
+    const isLoggedIn = localStorage.getItem('sfp-loggedin') === 'true';
+    const username = localStorage.getItem('sfp-username') || 'User';
+    const loginBtn = document.getElementById('login-btn');
+    const userInfo = document.getElementById('user-info');
+    const mainContent = document.querySelector('main');
+
+    if (isLoggedIn) {
+        if (loginBtn) loginBtn.classList.add('hidden');
+        if (userInfo) userInfo.classList.remove('hidden');
+        if (userInfo) document.getElementById('logged-user').innerText = username;
+        if (mainContent) mainContent.style.display = 'block';
+        document.getElementById('login-box').style.display = 'none';
+    } else {
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        if (userInfo) userInfo.classList.add('hidden');
+        if (mainContent) mainContent.style.display = 'none';
+        document.getElementById('login-box').style.display = 'flex';
     }
 }
 
@@ -164,7 +240,7 @@ function calc() {
                 soldInput.value = soldVal.toFixed(2);
                 subDisplay.innerText = soldVal.toFixed(2);
                 totalSales += soldVal;
-                totalItems += soldVal;
+                // Don't count EV Recharge in totalItems
                 
                 if(soldVal > maxSold) {
                     maxSold = soldVal;
@@ -206,8 +282,6 @@ function calc() {
     
     // Update quick stats
     document.getElementById('items-sold').innerText = Math.round(totalItems);
-    document.getElementById('avg-price').innerText = totalItems > 0 ? (netToday / totalItems).toFixed(2) + " Tk" : "0.00 Tk";
-    document.getElementById('top-item').innerText = topItem || "-";
 }
 
 // Fetch data from Google Sheets
@@ -219,9 +293,17 @@ async function refreshData() {
     
     // Add loading state
     isLoading = true;
-    btn.disabled = true;
-    icon.classList.add('fa-spin');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...';
+    if (btn) {
+        btn.disabled = true;
+        icon.classList.add('fa-spin');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...';
+    }
+    
+    // Show skeleton loaders
+    const skeletonLoader = document.getElementById('skeleton-loader');
+    const analyticsSkeleton = document.getElementById('analytics-skeleton');
+    if (skeletonLoader) skeletonLoader.classList.remove('hidden');
+    if (analyticsSkeleton) analyticsSkeleton.classList.remove('hidden');
 
     try {
         // Save cached data timestamp
@@ -244,7 +326,10 @@ async function refreshData() {
         }
         
         const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
-        document.getElementById('name-list').innerHTML = names.map(n => `<option value="${n}">`).join('');
+        const nameList = document.getElementById('name-list');
+        if (nameList) {
+            nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
+        }
         renderTable();
         updateAnalytics();
     } catch (e) {
@@ -263,9 +348,11 @@ async function refreshData() {
     } finally {
         // Reset loading state
         isLoading = false;
-        btn.disabled = false;
-        icon.classList.remove('fa-spin');
-        btn.innerHTML = '<i id="sync-icon" class="fas fa-sync-alt mr-2"></i> Sync';
+        if (btn) {
+            btn.disabled = false;
+            icon.classList.remove('fa-spin');
+            btn.innerHTML = '<i id="sync-icon" class="fas fa-sync-alt mr-2"></i> Sync';
+        }
     }
 }
 
@@ -400,6 +487,8 @@ async function submitData() {
 // Render report table
 function renderTable() {
     const tbody = document.getElementById('report-body');
+    if (!tbody) return; // Page doesn't have this element
+    
     const searchFilter = document.getElementById('f-name').value.toLowerCase().trim();
     
     // Filter data
@@ -454,10 +543,19 @@ function renderTable() {
     // Update summary
     document.getElementById('total-sales').textContent = totalSales.toFixed(2) + ' Tk';
     document.getElementById('outstanding-dues').textContent = outstandingDues.toFixed(2) + ' Tk';
+    
+    // Hide skeleton loader and show content
+    const skeletonLoader = document.getElementById('skeleton-loader');
+    const reportContent = document.getElementById('report-content');
+    if (skeletonLoader) skeletonLoader.classList.add('hidden');
+    if (reportContent) reportContent.classList.remove('hidden');
 }
 
 // Update analytics panel
 function updateAnalytics() {
+    const dailyTotal = document.getElementById('daily-total');
+    if (!dailyTotal) return; // Page doesn't have analytics
+    
     if (allData.length <= 1) return;
 
     const rows = allData.slice(1);
@@ -506,6 +604,12 @@ function updateAnalytics() {
         .sort()
         .map(([d, tot]) => `<div class="flex justify-between"><span>${d}</span><span class="font-bold">${tot.toFixed(2)} Tk</span></div>`);
     document.getElementById('daily-breakdown').innerHTML = breakdownEls.join('') || '<div class="text-slate-400">No data</div>';
+    
+    // Hide skeleton loader and show content
+    const analyticsSkeleton = document.getElementById('analytics-skeleton');
+    const analyticsContent = document.getElementById('analytics-content');
+    if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
+    if (analyticsContent) analyticsContent.classList.remove('hidden');
 }
 
 // Export to Excel

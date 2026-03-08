@@ -3,18 +3,27 @@
 
 <!-- Login Modal -->
 <div id="login-box" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 px-4 bg-opacity-90 backdrop-blur-sm">
-    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center fade-in">
-        <div class="mb-6">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm fade-in">
+        <div class="mb-6 text-center">
             <div class="mx-auto bg-blue-600 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                <i class="fas fa-lock text-white text-xl"></i>
+                <i class="fas fa-user text-white text-xl"></i>
             </div>
-            <h2 class="text-xl font-extrabold text-slate-800 uppercase tracking-widest">System Access</h2>
-            <p class="text-slate-500 text-sm mt-2">Enter your PIN to continue</p>
+            <h2 class="text-2xl font-extrabold text-slate-800 uppercase tracking-tight">Login</h2>
+            <p class="text-slate-500 text-sm mt-2">Sign in to your account</p>
         </div>
-        <input type="password" id="pass" class="w-full text-center text-3xl tracking-[0.4em] border-b-2 border-slate-200 mb-8 focus:border-blue-500 focus:outline-none transition-colors pb-2" placeholder="••••">
-        <button onclick="login()" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-md hover:shadow-lg">
-            Unlock Dashboard
-        </button>
-        <p class="text-slate-400 text-xs mt-4">Default PIN: 1234</p>
+        <form onsubmit="return handleLogin(event)">
+            <div class="mb-4">
+                <label class="text-xs font-bold text-slate-600 uppercase block mb-2">Username</label>
+                <input type="text" id="username" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="Enter username" required>
+            </div>
+            <div class="mb-6">
+                <label class="text-xs font-bold text-slate-600 uppercase block mb-2">Password</label>
+                <input type="password" id="password" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-md hover:shadow-lg">
+                Sign In
+            </button>
+        </form>
+        <p class="text-slate-400 text-xs mt-4 text-center">Demo: user / pass</p>
     </div>
 </div>
