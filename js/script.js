@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWzMei93nrzZBlsUDjEQmDS6xiQyzVHSTEuXbsYR3HTm94EI5SCzN8ayPZps9VpnPV/exec"; // updated to the latest endpoint
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzesy61BweFAXYJbDBJ9iPx7_jpRug40CSODdaeRsSw8V-KpaOMUKSjuEeMyW-MM0U5/exec"; // updated to the latest endpoint
 let allData = [];
 let isLoading = false;
 let productStats = {};
@@ -305,8 +305,8 @@ function calc() {
                     soldVal = took - (took * (rate / 100));
                 }
                 
-                soldInput.value = soldVal.toFixed(2);
-                subDisplay.innerText = soldVal.toFixed(2);
+                soldInput.value = soldVal.toFixed(0);
+                subDisplay.innerText = soldVal.toFixed(0);
                 totalSales += soldVal;
                 // Don't count EV Recharge in totalItems
                 
@@ -326,7 +326,7 @@ function calc() {
                 }
                 
                 let sub = rate * sold;
-                subDisplay.innerText = sub.toFixed(2);
+                subDisplay.innerText = sub.toFixed(0);
                 totalSales += sub;
                 totalItems += sold;
                 
@@ -345,8 +345,8 @@ function calc() {
     const histDue = parseFloat(document.getElementById('history-due').innerText) || 0;
     
     const netToday = totalSales - fuel;
-    document.getElementById('total-val').innerText = netToday.toFixed(2);
-    document.getElementById('grand-due-val').innerText = (histDue + netToday - (paid + prev)).toFixed(2);
+    document.getElementById('total-val').innerText = netToday.toFixed(0);
+    document.getElementById('grand-due-val').innerText = (histDue + netToday - (paid + prev)).toFixed(0);
     
     // Update quick stats
     document.getElementById('items-sold').innerText = Math.round(totalItems);
@@ -483,14 +483,15 @@ function checkHistoryBalance() {
     let totalDue = 0;
     
     if(nameInput && allData.length > 1) {
+        // Iterate through all rows and keep the latest balance for this person
         allData.slice(1).forEach(row => {
             if(row[1] && row[1].toLowerCase() === nameInput) {
-                totalDue += parseFloat(row[27]) || 0;
+                totalDue = parseFloat(row[27]) || 0;
             }
         });
     }
     
-    document.getElementById('history-due').innerText = totalDue.toFixed(2);
+    document.getElementById('history-due').innerText = totalDue.toFixed(0);
     calc();
     
     // Highlight if high balance
@@ -655,9 +656,9 @@ function renderTable() {
     let html = '';
     try {
         filteredData.forEach(row => {
-            const netSales = parseFloat(row[26]) || 0;
-            const paid = parseFloat(row[23]) || 0;
-            const due = parseFloat(row[27]) || 0;
+            const netSales = parseFloat(row[25]) || 0;
+            const paid = parseFloat(row[26]) || 0;
+            const due = parseFloat(row[27]) || netSales - paid;
             
             totalSales += netSales;
             outstandingDues += due;
@@ -678,9 +679,9 @@ function renderTable() {
                 <td class="p-3">${row[0] || '-'}</td>
                 <td class="p-3 font-medium">${row[1] || '-'}</td>
                 <td class="p-3">${row[2] || '-'}</td>
-                <td class="p-3 font-bold">${netSales.toFixed(2)}</td>
-                <td class="p-3 text-green-600 font-bold">${paid.toFixed(2)}</td>
-                <td class="p-3 text-red-600 font-bold">${due.toFixed(2)}</td>
+                <td class="p-3 font-bold">${netSales.toFixed(0)}</td>
+                <td class="p-3 text-green-600 font-bold">${paid.toFixed(0)}</td>
+                <td class="p-3 text-red-600 font-bold">${due.toFixed(0)}</td>
                 <td class="p-3"><span class="status-badge ${statusClass}">${statusText}</span></td>
             </tr>
         `;
@@ -693,10 +694,10 @@ function renderTable() {
     
     // Update summary
     const totalSalesEl = document.getElementById('total-sales');
-    if (totalSalesEl) totalSalesEl.textContent = totalSales.toFixed(2) + ' Tk';
+    if (totalSalesEl) totalSalesEl.textContent = totalSales.toFixed(0) + ' Tk';
     
     const outstandingDuesEl = document.getElementById('outstanding-dues');
-    if (outstandingDuesEl) outstandingDuesEl.textContent = outstandingDues.toFixed(2) + ' Tk';
+    if (outstandingDuesEl) outstandingDuesEl.textContent = outstandingDues.toFixed(0) + ' Tk';
     
     // Hide skeleton loader and show content
     const skeletonLoader = document.getElementById('skeleton-loader');
@@ -714,7 +715,7 @@ function renderTable() {
 // Update analytics panel
 function updateAnalytics() {
     console.log('updateAnalytics called');
-    const dailyTotal = document.getElementById('daily-total');
+    const dailyTotal = document.getElementById('todays-revenue');
     if (!dailyTotal) {
         console.log('No analytics elements on this page, skipping');
         return; // Page doesn't have analytics
@@ -728,71 +729,167 @@ function updateAnalytics() {
     try {
         const rows = allData.slice(1);
         
-        // Safely get filter values
-        const analyticsNameEl = document.getElementById('analytics-name');
-        const analyticsDateEl = document.getElementById('analytics-date');
-        const analyticsMonthEl = document.getElementById('analytics-month');
+        // Get filter values from the new filter inputs
+        const filterNameEl = document.getElementById('filter-name');
+        const filterFromEl = document.getElementById('filter-from');
+        const filterToEl = document.getElementById('filter-to');
         
-        const nameFilter = analyticsNameEl ? analyticsNameEl.value.toLowerCase().trim() : '';
-        const dateFilter = analyticsDateEl ? analyticsDateEl.value : ''; // yyyy-mm-dd
-        const monthFilter = analyticsMonthEl ? analyticsMonthEl.value : ''; // yyyy-mm
+        const nameFilter = filterNameEl ? filterNameEl.value.toLowerCase().trim() : '';
+        const dateFrom = filterFromEl ? filterFromEl.value : '';
+        const dateTo = filterToEl ? filterToEl.value : '';
 
-        // apply name filtering
+        // Helper to strip time from date string (keep yyyy-mm-dd)
+        const stripTime = d => (d||"").split('T')[0];
+
+        // Apply filters
         let filtered = rows.filter(r => {
-            if (nameFilter) {
-                return r && r[1] && r[1].toLowerCase().includes(nameFilter);
+            if (!r || !r[0]) return false;
+            
+            // Name filter
+            if (nameFilter && (!r[1] || !r[1].toLowerCase().includes(nameFilter))) {
+                return false;
             }
+            
+            // Date range filter
+            const rowDate = stripTime(r[0]);
+            if (dateFrom && rowDate < dateFrom) return false;
+            if (dateTo && rowDate > dateTo) return false;
+            
             return true;
         });
 
-        // helper to strip time from date string (keep yyyy-mm-dd)
-        const stripTime = d => (d||"").split('T')[0];
+        console.log('Filtered data rows:', filtered.length, 'from total:', rows.length);
 
-        // compute daily total
-        let dailyTotalValue = 0;
-        const targetDay = dateFilter || new Date().toISOString().split('T')[0];
-        filtered.forEach(r => {
-            if (stripTime(r[0]) === targetDay) {
-                dailyTotalValue += parseFloat(r[26]) || 0;
+        // Deduplicate: Group by date and name, sum values
+        const deduplicateData = (data) => {
+            const grouped = {};
+            data.forEach(r => {
+                const date = stripTime(r[0]);
+                const name = r[1] || 'Unknown';
+                const key = `${date}|${name}`;
+                const netSales = parseFloat(r[25]) || 0;
+                const paid = parseFloat(r[26]) || 0;
+                
+                if (!grouped[key]) {
+                    grouped[key] = {date, name, netSales: 0, paid: 0};
+                }
+                grouped[key].netSales += netSales;
+                grouped[key].paid += paid;
+            });
+            // convert to array with computed due
+            return Object.values(grouped).map(item => ({
+                date: item.date,
+                name: item.name,
+                netSales: item.netSales,
+                due: item.netSales - item.paid
+            }));
+        };
+
+        // Calculate today's metrics
+        const today = new Date().toISOString().split('T')[0];
+        let todaysRevenue = 0;
+        let todaysDue = 0;
+        
+        // calculate metrics using deduped data (to avoid double-counting)
+        const dedupedAll = deduplicateData(rows);
+        dedupedAll.forEach(r => {
+            if (r.date === today) {
+                todaysRevenue += r.netSales;
+                todaysDue += r.due; // use sheet due value
             }
         });
-        document.getElementById('daily-total').textContent = dailyTotalValue.toFixed(2) + ' Tk';
+        
+        document.getElementById('todays-revenue').textContent = todaysRevenue.toFixed(0) + ' Taka';
+        document.getElementById('todays-due').textContent = todaysDue.toFixed(0) + ' Taka';
 
-        // compute monthly total
-        let monthlyTotal = 0;
-        const targetMonth = monthFilter || new Date().toISOString().slice(0, 7);
-        filtered.forEach(r => {
-            if (stripTime(r[0]).startsWith(targetMonth)) monthlyTotal += parseFloat(r[26]) || 0;
-        });
-        const monthlyTotalEl = document.getElementById('monthly-total');
-        if (monthlyTotalEl) monthlyTotalEl.textContent = monthlyTotal.toFixed(2) + ' Tk';
-
-        // day-to-day breakdown for the selected month
-        const breakdown = {};
-        filtered.forEach(r => {
-            const day = stripTime(r[0]);
-            if (day.startsWith(targetMonth)) {
-                breakdown[day] = (breakdown[day] || 0) + (parseFloat(r[26]) || 0);
+        // Calculate weekly revenue and weekly due (last 7 days)
+        let monthlyRevenue = 0;
+        // calculate first day of current month
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        
+        dedupedAll.forEach(r => {
+            if (r.date >= monthStart) {
+                monthlyRevenue += r.netSales;
             }
         });
-        const breakdownEls = Object.entries(breakdown)
-            .sort()
-            .map(([d, tot]) => `<div class="flex justify-between"><span>${d}</span><span class="font-bold">${tot.toFixed(2)} Tk</span></div>`);
-        const dailyBreakdownEl = document.getElementById('daily-breakdown');
-        if (dailyBreakdownEl) {
-            dailyBreakdownEl.innerHTML = breakdownEls.join('') || '<div class="text-slate-400">No data</div>';
+        
+        document.getElementById('monthly-revenue').textContent = monthlyRevenue.toFixed(0) + ' Taka';
+
+        // Aggregate filtered data by name (sum revenue, track latest date and due)
+        const summary = {};
+        filtered.forEach(r => {
+            const date = stripTime(r[0]);
+            const name = r[1] || 'Unknown';
+            const netSales = parseFloat(r[25]) || 0;
+            const due = parseFloat(r[27]) || 0;
+
+            if (!summary[name]) {
+                summary[name] = {name, totalRevenue: 0, latestDate: date, latestDue: due};
+            }
+            summary[name].totalRevenue += netSales;
+            // Always take the last entry encountered as the "latest" state
+            // since Google Sheets appends new data at the bottom.
+            summary[name].latestDate = date;
+            summary[name].latestDue = due;
+        });
+
+        // Build table data - Revenue table now shows total revenue per person and latest date
+        let tableDataRevenue = Object.values(summary).map(item => ({
+            date: item.latestDate,
+            name: item.name,
+            value: item.totalRevenue
+        }));
+
+        // Build table data - Due table should show those with any latest due > 0
+        let tableDataDue = Object.values(summary)
+            .filter(item => Math.round(item.latestDue) > 0)
+            .map(item => ({
+                date: item.latestDate,
+                name: item.name,
+                value: item.latestDue
+            }));
+
+        // Sort by date descending (newest first)
+        tableDataRevenue.sort((a, b) => new Date(b.date) - new Date(a.date));
+        tableDataDue.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Populate "RSO, BP" table
+        const allRsoTable = document.getElementById('all-rso-table');
+        if (allRsoTable) {
+            let html = '';
+            tableDataRevenue.forEach(item => {
+                html += `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="py-3 px-4 text-slate-700 font-semibold text-sm">${item.date}</td>
+                    <td class="py-3 px-4 text-slate-700 font-semibold">${item.name}</td>
+                    <td class="text-right py-3 px-4 text-slate-700 font-semibold">${item.value.toFixed(0)} Tk</td>
+                </tr>
+                `;
+            });
+            allRsoTable.innerHTML = html || '<tr><td colspan="3" class="p-4 text-center text-slate-400">No records found</td></tr>';
+        }
+
+        // Populate "RSO, BP Due" table
+        const dueRsoTable = document.getElementById('due-rso-table');
+        if (dueRsoTable) {
+            let html = '';
+            tableDataDue.forEach(item => {
+                html += `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="py-3 px-4 text-slate-700 font-semibold text-sm">${item.date}</td>
+                    <td class="py-3 px-4 text-slate-700 font-semibold">${item.name}</td>
+                    <td class="text-right py-3 px-4 text-slate-700 font-semibold">${item.value.toFixed(0)} Tk</td>
+                </tr>
+                `;
+            });
+            dueRsoTable.innerHTML = html || '<tr><td colspan="3" class="p-4 text-center text-slate-400">No records found</td></tr>';
         }
         
         console.log('updateAnalytics complete');
     } catch (e) {
         console.error('Error in updateAnalytics:', e);
     }
-    
-    // Hide skeleton loader and show content
-    const analyticsSkeleton = document.getElementById('analytics-skeleton');
-    const analyticsContent = document.getElementById('analytics-content');
-    if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
-    if (analyticsContent) analyticsContent.classList.remove('hidden');
 }
 
 // Export to Excel
