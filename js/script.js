@@ -78,7 +78,7 @@ function insertFallback(containerId) {
                 'reports': ['nav-reports', 'nav-reports-mobile'],
                 'analytics': ['nav-analytics', 'nav-analytics-mobile']
             };
-            
+
             Object.keys(links).forEach(key => {
                 if (currentPage.includes(key) || (key === 'entry' && (currentPage === '' || currentPage === 'index.html'))) {
                     links[key].forEach(id => {
@@ -127,18 +127,18 @@ function insertFallback(containerId) {
 }
 
 // Initialize the app & load components
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     // Ensure containers exist before filling them
     const headerCont = document.getElementById('header-container');
     const navbarCont = document.getElementById('navbar-container');
-    
+
     // Load components with fast timeout and fallback
     await Promise.all([
         loadComponent('components/header.html', 'header-container').catch(() => insertFallback('header-container')),
         loadComponent('components/navbar.html', 'navbar-container').catch(() => insertFallback('navbar-container')),
         loadComponent('components/footer.html', 'footer-container').catch(() => insertFallback('footer-container'))
     ]);
-    
+
     // Verify components were loaded, if not, inject fallback immediately
     if (!document.querySelector('nav')) {
         insertFallback('navbar-container');
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // --- Helper Functions ---
     // Helper to format date nicely (e.g., 12 Mar 26)
-    window.formatDate = function(dateStr) {
+    window.formatDate = function (dateStr) {
         if (!dateStr || dateStr === '-') return '-';
         try {
             const d = new Date(dateStr);
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     // Format number to Taka string
-    window.formatTk = function(num) {
+    window.formatTk = function (num) {
         return (parseFloat(num) || 0).toFixed(0) + ' Tk';
     };
     // ------------------------
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Add keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         // Ctrl+S to save
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
@@ -207,7 +207,7 @@ function showNotification(message, type = "success") {
     toast.innerText = message;
     toast.classList.remove('hidden');
     toast.classList.add('show');
-    
+
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.classList.add('hidden'), 300);
@@ -219,9 +219,9 @@ function handleLogin(event) {
     event.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
-    
+
     // Simple validation (user / pass)
-    if(username === "user" && password === "pass") {
+    if (username === "fida" && password === "fida") {
         document.getElementById('login-box').style.display = 'none';
         localStorage.setItem('sfp-loggedin', 'true');
         localStorage.setItem('sfp-username', username);
@@ -273,7 +273,7 @@ function updateAuthUI() {
         }
         if (mainContent) mainContent.classList.remove('opacity-0');
         if (loginBox) loginBox.style.display = 'none';
-        
+
         // Ensure nav links are visible
         const navItems = document.querySelectorAll('.tab-btn');
         navItems.forEach(btn => btn.classList.remove('opacity-0'));
@@ -301,7 +301,7 @@ function calc() {
     let totalItems = 0;
     let maxSold = 0;
     let topItem = "";
-    
+
     document.querySelectorAll('#product-rows tr').forEach(tr => {
         const id = tr.getAttribute('data-id');
         const rate = parseFloat(tr.querySelector('.rate').value) || 0;
@@ -312,7 +312,7 @@ function calc() {
         if (tr.style.display !== 'none') {
             if (id === 'ev') {
                 let soldVal;
-                
+
                 // Validate input
                 if (took < 0) {
                     tr.querySelector('.took').classList.add('!border-red-300', '!bg-red-50');
@@ -321,19 +321,19 @@ function calc() {
                     tr.querySelector('.took').classList.remove('!border-red-300', '!bg-red-50');
                     soldVal = took - (took * (rate / 100));
                 }
-                
+
                 soldInput.value = soldVal.toFixed(0);
                 subDisplay.innerText = soldVal.toFixed(0);
                 totalSales += soldVal;
                 // Don't count EV Recharge in totalItems
-                
-                if(soldVal > maxSold) {
+
+                if (soldVal > maxSold) {
                     maxSold = soldVal;
                     topItem = "EV Recharge";
                 }
             } else {
                 let sold = parseFloat(tr.querySelector('.sold').value) || 0;
-                
+
                 // Validate input
                 if (sold < 0) {
                     tr.querySelector('.sold').classList.add('!border-red-300', '!bg-red-50');
@@ -341,13 +341,13 @@ function calc() {
                 } else {
                     tr.querySelector('.sold').classList.remove('!border-red-300', '!bg-red-50');
                 }
-                
+
                 let sub = rate * sold;
                 subDisplay.innerText = sub.toFixed(0);
                 totalSales += sub;
                 totalItems += sold;
-                
-                if(sold > maxSold) {
+
+                if (sold > maxSold) {
                     maxSold = sold;
                     const itemName = tr.querySelector('td:first-child').innerText;
                     topItem = itemName;
@@ -360,11 +360,11 @@ function calc() {
     const paid = parseFloat(document.getElementById('paid').value) || 0;
     const prev = parseFloat(document.getElementById('prev').value) || 0;
     const histDue = parseFloat(document.getElementById('history-due').innerText) || 0;
-    
+
     const netToday = totalSales - fuel;
     document.getElementById('total-val').innerText = netToday.toFixed(0);
     document.getElementById('grand-due-val').innerText = (histDue + netToday - (paid + prev)).toFixed(0);
-    
+
     // Update quick stats
     document.getElementById('items-sold').innerText = Math.round(totalItems);
 }
@@ -373,11 +373,11 @@ function calc() {
 // when called with force=true the cache is ignored and a fresh fetch is made
 async function refreshData(force = false) {
     console.log('refreshData called, isLoading:', isLoading, 'force:', force);
-    if(isLoading) return;
-    
+    if (isLoading) return;
+
     const headerSyncBtn = document.getElementById('header-sync-btn');
     const headerSyncIcon = document.getElementById('header-sync-icon');
-    
+
     // Add loading state
     isLoading = true;
     if (headerSyncBtn) {
@@ -387,47 +387,47 @@ async function refreshData(force = false) {
             headerSyncIcon.classList.add('fa-spin', 'text-blue-600');
         }
     }
-    
+
     try {
         console.log('Fetching live data from API...');
         const res = await fetchWithTimeout(SCRIPT_URL, {}, 8000);
         console.log('API response received:', res.status);
-        if(!res.ok) throw new Error('Network response was not ok: ' + res.status);
-        
+        if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+
         console.log('Parsing JSON response...');
         allData = await res.json();
         const now = new Date().getTime();
-        
+
         localStorage.setItem('sfp-data', JSON.stringify(allData));
         localStorage.setItem('sfp-timestamp', now.toString());
-        
+
         // Success coloring for header sync button
         if (headerSyncIcon) {
             headerSyncIcon.classList.remove('text-blue-600');
             headerSyncIcon.classList.add('text-green-500');
         }
         showNotification("Data synced successfully", "success");
-        
+
         console.log('Processing names...');
         const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
         console.log('Unique names:', names.length);
-        
+
         const nameList = document.getElementById('name-list');
         if (nameList) {
             nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
         }
-        
+
         console.log('Calling renderTable...');
         renderTable();
-        
+
         console.log('Calling updateAnalytics...');
         updateAnalytics();
-        
+
         console.log('Data load complete');
     } catch (e) {
         console.error("Sync Error:", e);
         showNotification("API Error: " + e.message, "error");
-        
+
         // Try to use cached data as fallback
         const cachedData = localStorage.getItem('sfp-data');
         if (cachedData) {
@@ -446,14 +446,14 @@ async function refreshData(force = false) {
         }
     } finally {
         console.log('refreshData finally block');
-        
+
         const reportContent = document.getElementById('report-content');
         const analyticsContent = document.getElementById('analytics-content');
         const entryContent = document.getElementById('entry-content');
         if (reportContent) reportContent.classList.remove('hidden', 'opacity-0');
         if (analyticsContent) analyticsContent.classList.remove('hidden', 'opacity-0');
         if (entryContent) entryContent.classList.remove('hidden', 'opacity-0');
-        
+
         // Reset loading state
         isLoading = false;
         if (headerSyncBtn) {
@@ -472,19 +472,19 @@ async function refreshData(force = false) {
 function checkHistoryBalance() {
     const nameInput = document.getElementById('rso-name').value.trim().toLowerCase();
     let totalDue = 0;
-    
-    if(nameInput && allData.length > 1) {
+
+    if (nameInput && allData.length > 1) {
         // Iterate through all rows and keep the latest balance for this person
         allData.slice(1).forEach(row => {
-            if(row[1] && row[1].toLowerCase() === nameInput) {
+            if (row[1] && row[1].toLowerCase() === nameInput) {
                 totalDue = parseFloat(row[27]) || 0;
             }
         });
     }
-    
+
     document.getElementById('history-due').innerText = totalDue.toFixed(0);
     calc();
-    
+
     // Highlight if high balance
     if (totalDue > 500) {
         document.getElementById('history-due').parentElement.classList.add('text-red-600');
@@ -500,30 +500,30 @@ async function submitData() {
     const name = document.getElementById('rso-name').value.trim();
     const date = document.getElementById('date').value;
     const role = document.getElementById('role').value;
-    
+
     // Validation
     if (!name) {
         showNotification("Please enter staff name", "error");
         document.getElementById('rso-name').focus();
         return;
     }
-    
+
     if (!date) {
         showNotification("Please select a date", "error");
         document.getElementById('date').focus();
         return;
     }
-    
+
     const btn = document.getElementById('submit-btn');
     const originalHTML = btn.innerHTML;
-    
+
     // Show loading state
-    btn.disabled = true; 
+    btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Saving...';
-    
+
     // Build data object
     const getV = (id, type) => parseFloat(document.querySelector(`[data-id="${id}"] .${type}`).value) || 0;
-    
+
     const data = {
         date: date,
         name: name,
@@ -564,11 +564,11 @@ async function submitData() {
             },
             body: JSON.stringify(data)
         }, 5000);
-        
+
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        
+
         // Clear form on success
         document.getElementById('rso-name').value = '';
         document.querySelectorAll('input.took, input.sold').forEach(inp => inp.value = '');
@@ -576,20 +576,20 @@ async function submitData() {
         document.getElementById('prev').value = '';
         document.getElementById('fuel').value = 100;
         document.getElementById('history-due').innerText = '0.00';
-        
+
         // Refresh data to get updated records
         refreshData();
-        
+
         showNotification("Data saved successfully!", "success");
     } catch (error) {
         console.error("Submission Error:", error);
         showNotification("Failed to save data", "error");
-        
+
         // Store data locally for later submission
         const pendingData = JSON.parse(localStorage.getItem('sfp-pending') || '[]');
-        pendingData.push({...data, timestamp: new Date().getTime()});
+        pendingData.push({ ...data, timestamp: new Date().getTime() });
         localStorage.setItem('sfp-pending', JSON.stringify(pendingData));
-        
+
         showNotification("Data saved locally. Will sync when online.", "warning");
     } finally {
         btn.disabled = false;
@@ -601,18 +601,18 @@ async function submitData() {
 function renderTable() {
     const tbody = document.getElementById('report-body');
     if (!tbody) return; // Page doesn't have this element
-    
+
     const searchInput = document.getElementById('f-name');
     const searchFilter = (searchInput ? searchInput.value : '').toLowerCase().trim();
-    
+
     console.log('renderTable called with data length:', allData.length, 'search:', searchFilter);
-    
+
     // Ensure allData is an array
     if (!Array.isArray(allData)) {
         console.error('allData is not an array:', allData);
         allData = [];
     }
-    
+
     // Filter data safely
     let filteredData = [];
     try {
@@ -624,13 +624,13 @@ function renderTable() {
         console.error('Error filtering data:', e);
         filteredData = [];
     }
-    
+
     console.log('Filtered data rows:', filteredData.length);
-    
+
     // Update cards
     const totalRecordsEl = document.getElementById('total-records');
     if (totalRecordsEl) totalRecordsEl.textContent = filteredData.length;
-    
+
     const activeStaffEl = document.getElementById('active-staff');
     if (activeStaffEl) {
         try {
@@ -639,10 +639,10 @@ function renderTable() {
             activeStaffEl.textContent = '0';
         }
     }
-    
+
     let totalSales = 0;
     let outstandingDues = 0;
-    
+
     // Build table rows
     let html = '';
     try {
@@ -650,13 +650,13 @@ function renderTable() {
             const netSales = parseFloat(row[25]) || 0;
             const paid = parseFloat(row[26]) || 0;
             const due = parseFloat(row[27]) || netSales - paid;
-            
+
             totalSales += netSales;
             outstandingDues += due;
-            
+
             let statusClass = "badge-success";
             let statusText = "Paid";
-            
+
             if (due > 0 && due <= 500) {
                 statusClass = "badge-warning";
                 statusText = "Partial";
@@ -664,7 +664,7 @@ function renderTable() {
                 statusClass = "badge-danger";
                 statusText = "Due";
             }
-            
+
             html += `
             <tr class="hover:bg-slate-50">
                 <td class="p-3 whitespace-nowrap">${window.formatDate(row[0])}</td>
@@ -680,16 +680,16 @@ function renderTable() {
     } catch (e) {
         console.error('Error building rows:', e);
     }
-    
+
     tbody.innerHTML = html || '<tr><td colspan="7" class="p-3 text-center text-slate-400">No records found</td></tr>';
-    
+
     // Update summary
     const totalSalesEl = document.getElementById('total-sales');
     if (totalSalesEl) totalSalesEl.textContent = totalSales.toFixed(0) + ' Tk';
-    
+
     const outstandingDuesEl = document.getElementById('outstanding-dues');
     if (outstandingDuesEl) outstandingDuesEl.textContent = outstandingDues.toFixed(0) + ' Tk';
-    
+
     // Show content
     const reportContent = document.getElementById('report-content');
     if (reportContent) {
@@ -706,7 +706,7 @@ function updateAnalytics() {
         console.log('No analytics elements on this page, skipping');
         return; // Page doesn't have analytics
     }
-    
+
     if (!Array.isArray(allData) || allData.length <= 1) {
         console.log('No data to update analytics');
         return;
@@ -714,33 +714,33 @@ function updateAnalytics() {
 
     try {
         const rows = allData.slice(1);
-        
+
         // Get filter values from the new filter inputs
         const filterNameEl = document.getElementById('filter-name');
         const filterFromEl = document.getElementById('filter-from');
         const filterToEl = document.getElementById('filter-to');
-        
+
         const nameFilter = filterNameEl ? filterNameEl.value.toLowerCase().trim() : '';
         const dateFrom = filterFromEl ? filterFromEl.value : '';
         const dateTo = filterToEl ? filterToEl.value : '';
 
         // Helper to strip time from date string (keep yyyy-mm-dd)
-        const stripTime = d => (d||"").split('T')[0];
+        const stripTime = d => (d || "").split('T')[0];
 
         // Apply filters
         let filtered = rows.filter(r => {
             if (!r || !r[0]) return false;
-            
+
             // Name filter
             if (nameFilter && (!r[1] || !r[1].toLowerCase().includes(nameFilter))) {
                 return false;
             }
-            
+
             // Date range filter
             const rowDate = stripTime(r[0]);
             if (dateFrom && rowDate < dateFrom) return false;
             if (dateTo && rowDate > dateTo) return false;
-            
+
             return true;
         });
 
@@ -755,9 +755,9 @@ function updateAnalytics() {
                 const key = `${date}|${name}`;
                 const netSales = parseFloat(r[25]) || 0;
                 const paid = parseFloat(r[26]) || 0;
-                
+
                 if (!grouped[key]) {
-                    grouped[key] = {date, name, netSales: 0, paid: 0};
+                    grouped[key] = { date, name, netSales: 0, paid: 0 };
                 }
                 grouped[key].netSales += netSales;
                 grouped[key].paid += paid;
@@ -775,7 +775,7 @@ function updateAnalytics() {
         const today = new Date().toISOString().split('T')[0];
         let todaysRevenue = 0;
         let todaysDue = 0;
-        
+
         // calculate metrics using deduped data (to avoid double-counting)
         const dedupedAll = deduplicateData(rows);
         dedupedAll.forEach(r => {
@@ -784,7 +784,7 @@ function updateAnalytics() {
                 todaysDue += r.due; // use sheet due value
             }
         });
-        
+
         document.getElementById('todays-revenue').textContent = todaysRevenue.toFixed(0) + ' Taka';
         document.getElementById('todays-due').textContent = todaysDue.toFixed(0) + ' Taka';
 
@@ -793,13 +793,13 @@ function updateAnalytics() {
         // calculate first day of current month
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        
+
         dedupedAll.forEach(r => {
             if (r.date >= monthStart) {
                 monthlyRevenue += r.netSales;
             }
         });
-        
+
         document.getElementById('monthly-revenue').textContent = monthlyRevenue.toFixed(0) + ' Taka';
 
         // Aggregate filtered data by name (sum revenue, track latest date and due)
@@ -811,7 +811,7 @@ function updateAnalytics() {
             const due = parseFloat(r[27]) || 0;
 
             if (!summary[name]) {
-                summary[name] = {name, totalRevenue: 0, latestDate: date, latestDue: due};
+                summary[name] = { name, totalRevenue: 0, latestDate: date, latestDue: due };
             }
             summary[name].totalRevenue += netSales;
             // Always take the last entry encountered as the "latest" state
@@ -871,7 +871,7 @@ function updateAnalytics() {
             });
             dueRsoTable.innerHTML = html || '<tr><td colspan="3" class="p-4 text-center text-slate-400">No records found</td></tr>';
         }
-        
+
         console.log('updateAnalytics complete');
     } catch (e) {
         console.error('Error in updateAnalytics:', e);
@@ -884,7 +884,7 @@ function exportExcel() {
         showNotification("No data to export", "warning");
         return;
     }
-    
+
     try {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(allData);
@@ -900,10 +900,10 @@ function exportExcel() {
 
 
 // Listen for online/offline events
-window.addEventListener('online', function() {
+window.addEventListener('online', function () {
     isOnline = true;
     showNotification("Back online", "success");
-    
+
     // Try to submit pending data
     const pendingData = JSON.parse(localStorage.getItem('sfp-pending') || '[]');
     if (pendingData.length > 0) {
@@ -914,7 +914,7 @@ window.addEventListener('online', function() {
     }
 });
 
-window.addEventListener('offline', function() {
+window.addEventListener('offline', function () {
     isOnline = false;
     showNotification("You are offline", "warning");
 });
