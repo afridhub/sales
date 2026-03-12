@@ -99,6 +99,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.3s ease-out; }
+.opacity-0 { opacity: 0; }
 
 /* Status badges */
 .status-badge {
@@ -146,6 +147,38 @@ body {
     .responsive-table th, 
     .responsive-table td {
         padding: 8px 4px !important;
+        font-size: 11px;
+    }
+    
+    .input-box {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+    
+    .summary-card p.text-2xl, 
+    .summary-card p.text-3xl {
+        font-size: 1.5rem;
+    }
+
+    /* Navbar mobile tweaks */
+    .tab-btn {
+        padding: 12px 2px;
         font-size: 12px;
     }
 }
+
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
+    
+    .max-w-7xl, .max-w-6xl {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    .summary-card {
+        padding: 12px !important;
+    }
+}
+

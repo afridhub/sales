@@ -42,24 +42,29 @@ function insertFallback(containerId) {
     if (containerId === 'navbar-container') {
         el.innerHTML = `
 <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 flex justify-between items-center h-16">
-        <div class="flex items-center space-x-2">
-            <img src="assets/images/logo/logo.png" alt="Logo" class="h-10 w-auto">
-            <span class="font-extrabold text-base uppercase tracking-tight">Banglalink Fida Hassan Admin</span>
-        </div>
-        <div class="flex gap-6 items-center">
-            <a href="entry.html" class="tab-btn" id="nav-entry">Entry</a>
-            <a href="reports.html" class="tab-btn" id="nav-reports">Reports</a>
-            <a href="analytics.html" class="tab-btn" id="nav-analytics">Analytics</a>
-            <div class="border-l border-slate-200 pl-6" id="auth-section">
-                <button onclick="showLoginModal()" id="login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
-                    <i class="fas fa-sign-in-alt"></i> Login
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center space-x-2">
+                <img src="assets/images/logo/logo.png" alt="Logo" class="h-10 md:h-12 w-auto">
+                <span class="font-bold text-xs md:text-base uppercase tracking-tight text-slate-800 hidden xs:block">Admin Panel</span>
+            </div>
+            
+            <div class="flex items-center justify-center space-x-2 md:space-x-6">
+                <a href="entry.html" class="tab-btn px-2 text-xs md:text-sm" id="nav-entry">Entry</a>
+                <a href="reports.html" class="tab-btn px-2 text-xs md:text-sm" id="nav-reports">Reports</a>
+                <a href="analytics.html" class="tab-btn px-2 text-xs md:text-sm" id="nav-analytics">Analytics</a>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="header-sync-btn" onclick="refreshData(true)" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center" title="Sync Live Data">
+                    <i class="fas fa-sync-alt" id="header-sync-icon"></i>
                 </button>
-                <div id="user-info" class="hidden flex items-center gap-4">
-                    <span class="text-sm font-medium text-slate-700">Welcome, <span id="logged-user">User</span></span>
-                    <button onclick="logout()" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center gap-2">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </button>
+                <div class="border-l border-slate-200 pl-2 lg:pl-4" id="auth-section">
+                    <div id="user-info" class="hidden flex items-center gap-2 md:gap-4">
+                        <button onclick="logout()" class="px-3 md:px-4 py-2 bg-red-600 text-white rounded-lg font-bold text-xs md:text-sm hover:bg-red-700 transition-colors flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Logout</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -68,16 +73,23 @@ function insertFallback(containerId) {
         // Set active nav based on current page
         setTimeout(() => {
             const currentPage = window.location.pathname.split('/').pop() || 'entry.html';
-            document.querySelectorAll('[id^="nav-"]').forEach(link => {
-                link.classList.remove('active');
+            const links = {
+                'entry': ['nav-entry', 'nav-entry-mobile'],
+                'reports': ['nav-reports', 'nav-reports-mobile'],
+                'analytics': ['nav-analytics', 'nav-analytics-mobile']
+            };
+            
+            Object.keys(links).forEach(key => {
+                if (currentPage.includes(key) || (key === 'entry' && (currentPage === '' || currentPage === 'index.html'))) {
+                    links[key].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            if (id.includes('mobile')) el.classList.add('active');
+                            else el.classList.add('bg-blue-50', 'text-blue-600');
+                        }
+                    });
+                }
             });
-            if (currentPage.includes('entry') || currentPage === '' || currentPage === 'index.html') {
-                if (document.getElementById('nav-entry')) document.getElementById('nav-entry').classList.add('active');
-            } else if (currentPage.includes('reports')) {
-                if (document.getElementById('nav-reports')) document.getElementById('nav-reports').classList.add('active');
-            } else if (currentPage.includes('analytics')) {
-                if (document.getElementById('nav-analytics')) document.getElementById('nav-analytics').classList.add('active');
-            }
         }, 0);
     } else if (containerId === 'header-container') {
         el.innerHTML = `<!-- Toast Notification -->
@@ -138,6 +150,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         insertFallback('footer-container');
     }
 
+    // --- Helper Functions ---
+    // Helper to format date nicely (e.g., 12 Mar 26)
+    window.formatDate = function(dateStr) {
+        if (!dateStr || dateStr === '-') return '-';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+        } catch (e) {
+            return dateStr;
+        }
+    };
+
+    // Format number to Taka string
+    window.formatTk = function(num) {
+        return (parseFloat(num) || 0).toFixed(0) + ' Tk';
+    };
+    // ------------------------
+
     // Set today's date
     const dateInput = document.getElementById('date');
     if (dateInput) {
@@ -148,32 +179,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     updateAuthUI();
 
     // Auto-load data for reports and analytics pages if logged in
-    const currentPage = window.location.pathname.split('/').pop() || 'entry.html';
     const isLoggedIn = localStorage.getItem('sfp-loggedin') === 'true';
-    
-    if (isLoggedIn && (currentPage.includes('reports') || currentPage.includes('analytics'))) {
-        // Show skeleton loader
-        const skeletonLoader = document.getElementById('skeleton-loader');
-        const reportContent = document.getElementById('report-content');
-        if (skeletonLoader) skeletonLoader.classList.remove('hidden');
-        if (reportContent) reportContent.classList.add('hidden');
-        
-        // Safety timeout to prevent infinite skeleton loading (10 seconds)
-        const skeletonTimeout = setTimeout(() => {
-            if (skeletonLoader) skeletonLoader.classList.add('hidden');
-            if (reportContent) reportContent.classList.remove('hidden');
-            // Also hide analytics skeleton if it exists
-            const analyticsSkeleton = document.getElementById('analytics-skeleton');
-            if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
-            const analyticsContent = document.getElementById('analytics-content');
-            if (analyticsContent) analyticsContent.classList.remove('hidden');
-        }, 10000);
-        
-        // Auto load data
-        await refreshData();
-        
-        // Clear timeout if data loaded successfully
-        clearTimeout(skeletonTimeout);
+    if (isLoggedIn) {
+        // Auto load live data for all pages (Entry, Reports, Analytics)
+        await refreshData(true);
     }
 
     // Add keyboard shortcuts
@@ -253,18 +262,26 @@ function updateAuthUI() {
     const loginBtn = document.getElementById('login-btn');
     const userInfo = document.getElementById('user-info');
     const mainContent = document.querySelector('main');
+    const loginBox = document.getElementById('login-box');
 
     if (isLoggedIn) {
         if (loginBtn) loginBtn.classList.add('hidden');
         if (userInfo) userInfo.classList.remove('hidden');
-        if (userInfo) document.getElementById('logged-user').innerText = username;
-        if (mainContent) mainContent.style.display = 'block';
-        document.getElementById('login-box').style.display = 'none';
+        if (userInfo) {
+            const loggedUserEl = document.getElementById('logged-user');
+            if (loggedUserEl) loggedUserEl.innerText = username;
+        }
+        if (mainContent) mainContent.classList.remove('opacity-0');
+        if (loginBox) loginBox.style.display = 'none';
+        
+        // Ensure nav links are visible
+        const navItems = document.querySelectorAll('.tab-btn');
+        navItems.forEach(btn => btn.classList.remove('opacity-0'));
     } else {
         if (loginBtn) loginBtn.classList.remove('hidden');
         if (userInfo) userInfo.classList.add('hidden');
-        if (mainContent) mainContent.style.display = 'none';
-        document.getElementById('login-box').style.display = 'flex';
+        if (mainContent) mainContent.classList.add('opacity-0');
+        if (loginBox) loginBox.style.display = 'flex';
     }
 }
 
@@ -358,65 +375,38 @@ async function refreshData(force = false) {
     console.log('refreshData called, isLoading:', isLoading, 'force:', force);
     if(isLoading) return;
     
-    const btn = document.getElementById('sync-btn');
-    const icon = document.getElementById('sync-icon');
+    const headerSyncBtn = document.getElementById('header-sync-btn');
+    const headerSyncIcon = document.getElementById('header-sync-icon');
     
     // Add loading state
     isLoading = true;
-    if (btn) {
-        btn.disabled = true;
-        if (icon) icon.classList.add('fa-spin');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...';
+    if (headerSyncBtn) {
+        headerSyncBtn.disabled = true;
+        if (headerSyncIcon) {
+            headerSyncIcon.classList.remove('text-green-500');
+            headerSyncIcon.classList.add('fa-spin', 'text-blue-600');
+        }
     }
     
-    // Show skeleton loaders
-    const skeletonLoader = document.getElementById('skeleton-loader');
-    const analyticsSkeleton = document.getElementById('analytics-skeleton');
-    if (skeletonLoader) skeletonLoader.classList.remove('hidden');
-    if (analyticsSkeleton) analyticsSkeleton.classList.remove('hidden');
-    
-    // Safety timeout to hide skeleton even if render hangs
-    let skeletonHideTimeout;
-    const setSafetyRemoval = () => {
-        skeletonHideTimeout = setTimeout(() => {
-            console.log('Safety timeout triggered - forcing skeleton hide');
-            if (skeletonLoader) skeletonLoader.classList.add('hidden');
-            if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
-            const reportContent = document.getElementById('report-content');
-            const analyticsContent = document.getElementById('analytics-content');
-            if (reportContent) reportContent.classList.remove('hidden');
-            if (analyticsContent) analyticsContent.classList.remove('hidden');
-        }, 8000);
-    };
-    setSafetyRemoval();
-
     try {
-        console.log('Checking cache...');
-        // Save cached data timestamp
-        const cachedData = localStorage.getItem('sfp-data');
-        const cachedTimestamp = localStorage.getItem('sfp-timestamp');
+        console.log('Fetching live data from API...');
+        const res = await fetchWithTimeout(SCRIPT_URL, {}, 8000);
+        console.log('API response received:', res.status);
+        if(!res.ok) throw new Error('Network response was not ok: ' + res.status);
         
-        // Only fetch new data if cache is older than 10 minutes, doesn't exist, or caller forced a refresh
+        console.log('Parsing JSON response...');
+        allData = await res.json();
         const now = new Date().getTime();
-        if (force || !cachedData || !cachedTimestamp || (now - parseInt(cachedTimestamp)) > 600000) {
-            if (force) console.log('force flag set, ignoring cache');
-            console.log('Fetching new data from API...');
-            const res = await fetchWithTimeout(SCRIPT_URL, {}, 5000);
-            console.log('API response received:', res.status);
-            if(!res.ok) throw new Error('Network response was not ok: ' + res.status);
-            
-            console.log('Parsing JSON response...');
-            allData = await res.json();
-            console.log('Data parsed, rows:', allData.length);
-            
-            localStorage.setItem('sfp-data', JSON.stringify(allData));
-            localStorage.setItem('sfp-timestamp', now.toString());
-            showNotification("Data synced successfully", "success");
-        } else {
-            console.log('Using cached data');
-            allData = JSON.parse(cachedData);
-            showNotification("Using cached data", "warning");
+        
+        localStorage.setItem('sfp-data', JSON.stringify(allData));
+        localStorage.setItem('sfp-timestamp', now.toString());
+        
+        // Success coloring for header sync button
+        if (headerSyncIcon) {
+            headerSyncIcon.classList.remove('text-blue-600');
+            headerSyncIcon.classList.add('text-green-500');
         }
+        showNotification("Data synced successfully", "success");
         
         console.log('Processing names...');
         const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
@@ -456,22 +446,23 @@ async function refreshData(force = false) {
         }
     } finally {
         console.log('refreshData finally block');
-        // Clear safety timeout and manually hide skeletons
-        if (skeletonHideTimeout) clearTimeout(skeletonHideTimeout);
         
-        if (skeletonLoader) skeletonLoader.classList.add('hidden');
-        if (analyticsSkeleton) analyticsSkeleton.classList.add('hidden');
         const reportContent = document.getElementById('report-content');
         const analyticsContent = document.getElementById('analytics-content');
-        if (reportContent) reportContent.classList.remove('hidden');
-        if (analyticsContent) analyticsContent.classList.remove('hidden');
+        const entryContent = document.getElementById('entry-content');
+        if (reportContent) reportContent.classList.remove('hidden', 'opacity-0');
+        if (analyticsContent) analyticsContent.classList.remove('hidden', 'opacity-0');
+        if (entryContent) entryContent.classList.remove('hidden', 'opacity-0');
         
         // Reset loading state
         isLoading = false;
-        if (btn) {
-            btn.disabled = false;
-            if (icon) icon.classList.remove('fa-spin');
-            btn.innerHTML = '<i id="sync-icon" class="fas fa-sync-alt mr-2"></i> Sync';
+        if (headerSyncBtn) {
+            headerSyncBtn.disabled = false;
+            if (headerSyncIcon) {
+                headerSyncIcon.classList.remove('fa-spin');
+                // Don't remove green color immediately so user sees success.
+                // It will be reset on the next sync start.
+            }
         }
         console.log('refreshData finished');
     }
@@ -676,12 +667,12 @@ function renderTable() {
             
             html += `
             <tr class="hover:bg-slate-50">
-                <td class="p-3">${row[0] || '-'}</td>
+                <td class="p-3 whitespace-nowrap">${window.formatDate(row[0])}</td>
                 <td class="p-3 font-medium">${row[1] || '-'}</td>
                 <td class="p-3">${row[2] || '-'}</td>
-                <td class="p-3 font-bold">${netSales.toFixed(0)}</td>
-                <td class="p-3 text-green-600 font-bold">${paid.toFixed(0)}</td>
-                <td class="p-3 text-red-600 font-bold">${due.toFixed(0)}</td>
+                <td class="p-3 font-bold">${window.formatTk(netSales)}</td>
+                <td class="p-3 text-green-600 font-bold">${window.formatTk(paid)}</td>
+                <td class="p-3 text-red-600 font-bold">${window.formatTk(due)}</td>
                 <td class="p-3"><span class="status-badge ${statusClass}">${statusText}</span></td>
             </tr>
         `;
@@ -699,13 +690,8 @@ function renderTable() {
     const outstandingDuesEl = document.getElementById('outstanding-dues');
     if (outstandingDuesEl) outstandingDuesEl.textContent = outstandingDues.toFixed(0) + ' Tk';
     
-    // Hide skeleton loader and show content
-    const skeletonLoader = document.getElementById('skeleton-loader');
+    // Show content
     const reportContent = document.getElementById('report-content');
-    if (skeletonLoader) {
-        skeletonLoader.classList.add('hidden');
-        console.log('Hidden skeleton loader');
-    }
     if (reportContent) {
         reportContent.classList.remove('hidden');
         console.log('Showed report content');
@@ -854,32 +840,32 @@ function updateAnalytics() {
         tableDataRevenue.sort((a, b) => new Date(b.date) - new Date(a.date));
         tableDataDue.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // Populate "RSO, BP" table
+        // Populate "RSO, BP" table/cards
         const allRsoTable = document.getElementById('all-rso-table');
         if (allRsoTable) {
             let html = '';
             tableDataRevenue.forEach(item => {
                 html += `
                 <tr class="border-b border-slate-200 hover:bg-slate-50">
-                    <td class="py-3 px-4 text-slate-700 font-semibold text-sm">${item.date}</td>
-                    <td class="py-3 px-4 text-slate-700 font-semibold">${item.name}</td>
-                    <td class="text-right py-3 px-4 text-slate-700 font-semibold">${item.value.toFixed(0)} Tk</td>
+                    <td class="py-3 px-4 text-slate-700 font-semibold text-sm whitespace-nowrap">${window.formatDate(item.date)}</td>
+                    <td class="py-3 px-4 text-slate-700 font-semibold truncate max-w-[120px] sm:max-w-none">${item.name}</td>
+                    <td class="text-right py-3 px-4 text-slate-700 font-bold whitespace-nowrap">${window.formatTk(item.value)}</td>
                 </tr>
                 `;
             });
             allRsoTable.innerHTML = html || '<tr><td colspan="3" class="p-4 text-center text-slate-400">No records found</td></tr>';
         }
 
-        // Populate "RSO, BP Due" table
+        // Populate "RSO, BP Due" table/cards
         const dueRsoTable = document.getElementById('due-rso-table');
         if (dueRsoTable) {
             let html = '';
             tableDataDue.forEach(item => {
                 html += `
                 <tr class="border-b border-slate-200 hover:bg-slate-50">
-                    <td class="py-3 px-4 text-slate-700 font-semibold text-sm">${item.date}</td>
-                    <td class="py-3 px-4 text-slate-700 font-semibold">${item.name}</td>
-                    <td class="text-right py-3 px-4 text-slate-700 font-semibold">${item.value.toFixed(0)} Tk</td>
+                    <td class="py-3 px-4 text-slate-700 font-semibold text-sm whitespace-nowrap">${window.formatDate(item.date)}</td>
+                    <td class="py-3 px-4 text-slate-700 font-semibold truncate max-w-[120px] sm:max-w-none">${item.name}</td>
+                    <td class="text-right py-3 px-4 text-red-600 font-bold whitespace-nowrap">${window.formatTk(item.value)}</td>
                 </tr>
                 `;
             });
@@ -911,26 +897,7 @@ function exportExcel() {
     }
 }
 
-// Restore cached data on page load if available
-window.addEventListener('load', function() {
-    const loggedIn = localStorage.getItem('sfp-loggedin');
-    if (loggedIn === 'true') {
-        document.getElementById('login-box').style.display = 'none';
-        document.getElementById('date').valueAsDate = new Date();
-        
-        const cachedData = localStorage.getItem('sfp-data');
-        if (cachedData) {
-            allData = JSON.parse(cachedData);
-            renderTable();
-            updateAnalytics();
-            
-            const names = [...new Set(allData.slice(1).map(row => row[1]))].filter(n => n);
-            document.getElementById('name-list').innerHTML = names.map(n => `<option value="${n}">`).join('');
-            
-            showNotification("App loaded with cached data", "success");
-        }
-    }
-});
+
 
 // Listen for online/offline events
 window.addEventListener('online', function() {
