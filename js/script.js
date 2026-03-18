@@ -583,14 +583,7 @@ async function submitData() {
         showNotification("Data saved successfully!", "success");
     } catch (error) {
         console.error("Submission Error:", error);
-        showNotification("Failed to save data", "error");
-
-        // Store data locally for later submission
-        const pendingData = JSON.parse(localStorage.getItem('sfp-pending') || '[]');
-        pendingData.push({ ...data, timestamp: new Date().getTime() });
-        localStorage.setItem('sfp-pending', JSON.stringify(pendingData));
-
-        showNotification("Data saved locally. Will sync when online.", "warning");
+        // Do not save locally or show sync messages
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
@@ -900,21 +893,4 @@ function exportExcel() {
 
 
 // Listen for online/offline events
-window.addEventListener('online', function () {
-    isOnline = true;
-    showNotification("Back online", "success");
-
-    // Try to submit pending data
-    const pendingData = JSON.parse(localStorage.getItem('sfp-pending') || '[]');
-    if (pendingData.length > 0) {
-        showNotification(`Submitting ${pendingData.length} pending records`, "success");
-        // Call refresh to trigger submission - simplified for demo
-        refreshData();
-        localStorage.removeItem('sfp-pending');
-    }
-});
-
-window.addEventListener('offline', function () {
-    isOnline = false;
-    showNotification("You are offline", "warning");
-});
+// Remove local sync logic: always save live, only log errors
